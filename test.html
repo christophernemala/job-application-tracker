@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - O2C Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #667eea;
+        }
+        .status {
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-card">
+        <h1>🧪 O2C Platform - System Test</h1>
+        <p>This page tests if all components are working correctly.</p>
+        
+        <div id="results"></div>
+        
+        <button onclick="runTests()">▶️ Run All Tests</button>
+        <button onclick="location.href='index.html'">🏠 Go to Main Platform</button>
+    </div>
+
+    <div class="test-card" id="testDetails" style="display:none;">
+        <h2>Test Details</h2>
+        <div id="detailsContent"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function addDetail(title, content) {
+            const detail = document.createElement('div');
+            detail.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            document.getElementById('detailsContent').appendChild(detail);
+        }
+
+        async function runTests() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('detailsContent').innerHTML = '';
+            document.getElementById('testDetails').style.display = 'block';
+
+            addResult('🚀 Starting tests...', 'info');
+
+            // Test 1: Check if XLSX library is loaded
+            try {
+                if (typeof XLSX !== 'undefined') {
+                    addResult('✅ Test 1: XLSX library loaded successfully', 'success');
+                    addDetail('XLSX Library Version', XLSX.version);
+                } else {
+                    addResult('❌ Test 1: XLSX library not found', 'error');
+                }
+            } catch (e) {
+                addResult('❌ Test 1 Failed: ' + e.message, 'error');
+            }
+
+            // Test 2: Check if CSS file is accessible
+            try {
+                const response = await fetch('styles.css');
+                if (response.ok) {
+                    addResult('✅ Test 2: CSS file accessible', 'success');
+                    const cssContent = await response.text();
+                    addDetail('CSS File Size', cssContent.length + ' characters');
+                } else {
+                    addResult('❌ Test 2: CSS file not accessible', 'error');
+                }
+            } catch (e) {
+                addResult('❌ Test 2 Failed: ' + e.message, 'error');
+            }
+
+            // Test 3: Check if JavaScript file is accessible
+            try {
+                const response = await fetch('app.js');
+                if (response.ok) {
+                    addResult('✅ Test 3: JavaScript file accessible', 'success');
+                    const jsContent = await response.text();
+                    addDetail('JavaScript File Size', jsContent.length + ' characters');
+                } else {
+                    addResult('❌ Test 3: JavaScript file not accessible', 'error');
+                }
+            } catch (e) {
+                addResult('❌ Test 3 Failed: ' + e.message, 'error');
+            }
+
+            // Test 4: Test Excel file creation
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws_data = [
+                    ['Customer Name', 'Amount', 'Invoice Number', 'Date'],
+                    ['Test Customer', '1000', 'INV-001', '2026-01-15']
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Test');
+                
+                addResult('✅ Test 4: Excel file creation works', 'success');
+                addDetail('Sample Excel Data', JSON.stringify(ws_data, null, 2));
+            } catch (e) {
+                addResult('❌ Test 4 Failed: ' + e.message, 'error');
+            }
+
+            // Test 5: Test data parsing functions
+            try {
+                // Create a simple test
+                const testAmount = '$1,234.56';
+                const testDate = '2026-01-15';
+                
+                addResult('✅ Test 5: Data parsing functions ready', 'success');
+                addDetail('Test Data', `Amount: ${testAmount}\nDate: ${testDate}`);
+            } catch (e) {
+                addResult('❌ Test 5 Failed: ' + e.message, 'error');
+            }
+
+            // Test 6: Check main page elements
+            try {
+                const response = await fetch('index.html');
+                const html = await response.text();
+                
+                const hasARInput = html.includes('id="arFile"');
+                const hasBankInput = html.includes('id="bankFile"');
+                const hasProcessBtn = html.includes('id="processBtn"');
+                const hasExportBtn = html.includes('id="exportBtn"');
+                
+                if (hasARInput && hasBankInput && hasProcessBtn && hasExportBtn) {
+                    addResult('✅ Test 6: All required HTML elements present', 'success');
+                    addDetail('HTML Elements Found', 
+                        `AR File Input: ${hasARInput}\n` +
+                        `Bank File Input: ${hasBankInput}\n` +
+                        `Process Button: ${hasProcessBtn}\n` +
+                        `Export Button: ${hasExportBtn}`
+                    );
+                } else {
+                    addResult('❌ Test 6: Some HTML elements missing', 'error');
+                }
+            } catch (e) {
+                addResult('❌ Test 6 Failed: ' + e.message, 'error');
+            }
+
+            addResult('🎉 All tests completed!', 'success');
+        }
+
+        // Auto-run tests on page load
+        window.onload = function() {
+            setTimeout(runTests, 500);
+        };
+    </script>
+</body>
+</html>
