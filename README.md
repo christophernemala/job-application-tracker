@@ -138,7 +138,7 @@ GitHub Copilot is an AI that helps you write code. Here's how to get it:
 ### Step 1: Subscribe to GitHub Copilot
 1. Go to https://github.com/features/copilot
 2. Click "Start free trial" or "Buy now"
-3. Choose individual plan ($10/month)
+3. Choose individual plan
 
 ### Step 2: Install VS Code
 1. Download from https://code.visualstudio.com/
