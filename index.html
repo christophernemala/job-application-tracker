@@ -1,903 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DHCM AR Reconciliation - Production Ready</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#0f172a;color:#f8fafc;padding:1.5rem}
-.container{max-width:1800px;margin:0 auto}
-.header{background:#1e293b;padding:1.5rem 2rem;border-radius:12px;margin-bottom:2rem;border:2px solid #3b82f6}
-.header h1{font-size:1.8rem;color:#3b82f6;margin-bottom:0.3rem}
-.header p{color:#94a3b8;font-size:0.9rem}
-.section{background:#1e293b;padding:2rem;border-radius:12px;margin-bottom:2rem;border:1px solid #334155}
-.section-title{font-size:1.4rem;margin-bottom:1.5rem;color:#60a5fa;font-weight:700}
-.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem}
-.upload-box{border:2px dashed #3b82f6;padding:2rem;border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s}
-.upload-box:hover{border-color:#60a5fa;background:rgba(59,130,246,0.1)}
-.upload-box.uploaded{border-color:#10b981;border-style:solid;background:rgba(16,185,129,0.1)}
-.file-input{display:none}
-.upload-icon{width:50px;height:50px;margin:0 auto 1rem;stroke:#3b82f6}
-.upload-title{font-size:1.1rem;margin-bottom:0.5rem;font-weight:700}
-.file-name{background:#10b981;color:white;padding:0.5rem 1rem;border-radius:6px;margin-top:1rem;display:none;font-size:0.9rem}
-.upload-box.uploaded .file-name{display:inline-block}
-.preview{background:#0f172a;border:1px solid #334155;border-radius:8px;margin-top:1rem;padding:1rem;max-height:250px;overflow-y:auto;display:none;text-align:left;font-size:0.85rem}
-.upload-box.uploaded .preview{display:block}
-.preview h4{color:#10b981;margin-bottom:0.8rem;font-size:0.95rem}
-.preview-item{padding:0.4rem 0;border-bottom:1px solid #334155;display:grid;grid-template-columns:180px 1fr;gap:0.5rem}
-.preview-item:last-child{border-bottom:none}
-.preview-label{color:#94a3b8;font-weight:600}
-.preview-value{color:#f8fafc;font-weight:600;word-break:break-all}
-.btn{padding:0.9rem 2rem;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.95rem;transition:all 0.3s;display:inline-flex;align-items:center;gap:0.5rem}
-.btn-primary{background:#3b82f6;color:white}
-.btn-primary:hover{background:#2563eb;transform:translateY(-2px)}
-.btn-success{background:#10b981;color:white}
-.btn-success:hover{background:#059669;transform:translateY(-2px)}
-.btn-secondary{background:#334155;color:#f8fafc;border:2px solid #3b82f6}
-.btn-secondary:hover{background:#475569}
-.hidden{display:none!important}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:2rem}
-.stat-card{background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1));border:1px solid #334155;border-radius:12px;padding:1.5rem}
-.stat-value{font-size:2.2rem;font-weight:800;color:#3b82f6;margin-bottom:0.3rem}
-.stat-label{color:#94a3b8;font-size:0.85rem;font-weight:600}
-.stat-subtitle{color:#64748b;font-size:0.8rem;margin-top:0.3rem}
-.tabs{display:flex;gap:0.5rem;margin-bottom:1.5rem;border-bottom:2px solid #334155;flex-wrap:wrap}
-.tab{padding:0.8rem 1.5rem;background:transparent;border:none;color:#94a3b8;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.3s;font-size:0.9rem}
-.tab:hover{color:#60a5fa}
-.tab.active{color:#3b82f6;border-bottom-color:#3b82f6}
-.table-container{background:#0f172a;border:1px solid #334155;border-radius:12px;overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:0.85rem}
-th{background:#1e293b;padding:0.9rem 0.7rem;text-align:left;color:#3b82f6;font-weight:700;border-bottom:2px solid #3b82f6;white-space:nowrap}
-td{padding:0.9rem 0.7rem;border-bottom:1px solid #334155;color:#cbd5e1}
-tr:hover{background:rgba(59,130,246,0.05)}
-.badge{padding:0.35rem 0.7rem;border-radius:6px;font-size:0.8rem;font-weight:700;display:inline-block;text-transform:uppercase}
-.badge-success{background:rgba(16,185,129,0.2);color:#10b981;border:1px solid #10b981}
-.badge-warning{background:rgba(245,158,11,0.2);color:#f59e0b;border:1px solid #f59e0b}
-.badge-danger{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid #ef4444}
-.alert{padding:1rem 1.5rem;border-radius:8px;margin-bottom:1rem;border-left:4px solid;font-size:0.9rem}
-.alert-info{background:rgba(59,130,246,0.1);border-color:#3b82f6;color:#60a5fa}
-.alert-success{background:rgba(16,185,129,0.1);border-color:#10b981;color:#34d399}
-.alert-warning{background:rgba(245,158,11,0.1);border-color:#f59e0b;color:#fbbf24}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1000;align-items:center;justify-content:center;padding:2rem}
-.modal.show{display:flex}
-.modal-content{background:#1e293b;border-radius:12px;padding:2rem;max-width:900px;max-height:90vh;overflow-y:auto;border:2px solid #3b82f6}
-.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:2px solid #334155}
-.modal-title{font-size:1.3rem;color:#3b82f6;font-weight:700}
-.modal-close{background:#ef4444;color:white;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.3rem;font-weight:700}
-.evidence-section{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:1.2rem;margin-bottom:1.2rem}
-.evidence-title{font-size:1rem;font-weight:700;color:#60a5fa;margin-bottom:0.8rem}
-.evidence-grid{display:grid;gap:0.6rem}
-.evidence-item{display:grid;grid-template-columns:200px 1fr;gap:1rem;padding:0.6rem 0;border-bottom:1px solid #334155}
-.evidence-item:last-child{border-bottom:none}
-.evidence-label{color:#94a3b8;font-weight:600;font-size:0.85rem}
-.evidence-value{color:#f8fafc;font-weight:600;font-size:0.85rem;word-break:break-word}
-.btn-evidence{background:rgba(59,130,246,0.2);border:1px solid #3b82f6;color:#60a5fa;padding:0.4rem 0.8rem;border-radius:6px;font-size:0.8rem;cursor:pointer;transition:all 0.3s;font-weight:600}
-.btn-evidence:hover{background:#3b82f6;color:white}
-@media (max-width:768px){
-  .upload-grid,.stats-grid{grid-template-columns:1fr}
-  table{font-size:0.75rem}
-  th,td{padding:0.6rem 0.4rem}
-  .preview-item{grid-template-columns:1fr;gap:0.2rem}
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Job Application Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>🏛️ DHCM AR RECONCILIATION SYSTEM</h1>
-    <p>Enterprise Financial Reconciliation with Multi-Pass Matching Engine</p>
+  <div class="container">
+    <header class="hero">
+      <h1>🤖 AI Job Application Agent</h1>
+      <p>Automate applications for <strong>Naukri Gulf</strong> and <strong>LinkedIn</strong> with tracking, resume tailoring, and cover letter generation.</p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="applications">Applications DB</button>
+      <button class="tab" data-tab="ai-studio">AI Studio</button>
+    </nav>
+
+    <section id="dashboard" class="panel active">
+      <div class="stats-grid">
+        <article class="card stat"><span>Total Applications</span><h3 id="totalApplications">0</h3></article>
+        <article class="card stat"><span>Interview Stages</span><h3 id="interviewCount">0</h3></article>
+        <article class="card stat"><span>Offers</span><h3 id="offerCount">0</h3></article>
+        <article class="card stat"><span>Response Rate</span><h3 id="responseRate">0%</h3></article>
+      </div>
+
+      <div class="card">
+        <h2>Pipeline Snapshot</h2>
+        <div id="pipelineBars" class="pipeline"></div>
+      </div>
+
+      <div class="card">
+        <h2>Recent Applications</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Platform</th><th>Company</th><th>Role</th><th>Status</th></tr>
+            </thead>
+            <tbody id="recentTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="applications" class="panel">
+      <div class="card">
+        <h2>Add Application</h2>
+        <form id="applicationForm" class="grid-form">
+          <select id="platform" required>
+            <option value="">Select Platform</option>
+            <option>Naukri Gulf</option>
+            <option>LinkedIn</option>
+          </select>
+          <input id="company" placeholder="Company" required />
+          <input id="role" placeholder="Job Title" required />
+          <input id="location" placeholder="Location" />
+          <input id="jobUrl" type="url" placeholder="Job URL" />
+          <select id="status" required>
+            <option>Applied</option>
+            <option>Under Review</option>
+            <option>Interview</option>
+            <option>Offer</option>
+            <option>Rejected</option>
+            <option>Withdrawn</option>
+          </select>
+          <textarea id="notes" placeholder="Notes"></textarea>
+          <button class="btn" type="submit">Save Application</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Application Database</h2>
+        <div class="filters">
+          <input id="searchInput" placeholder="Search company, role, location..." />
+          <select id="platformFilter"><option value="all">All Platforms</option><option>Naukri Gulf</option><option>LinkedIn</option></select>
+          <select id="statusFilter"><option value="all">All Statuses</option><option>Applied</option><option>Under Review</option><option>Interview</option><option>Offer</option><option>Rejected</option><option>Withdrawn</option></select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Applied On</th><th>Platform</th><th>Company</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="applicationTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="ai-studio" class="panel">
+      <div class="card">
+        <h2>Candidate Profile</h2>
+        <form id="profileForm" class="grid-form">
+          <input id="fullName" placeholder="Full Name" required />
+          <input id="email" type="email" placeholder="Email" required />
+          <input id="phone" placeholder="Phone" required />
+          <input id="experience" placeholder="Years of Experience" required />
+          <input id="skills" placeholder="Top skills (comma separated)" required />
+          <textarea id="achievements" placeholder="Key achievements" required></textarea>
+          <button class="btn secondary" type="submit">Save Profile</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>AI Content Generator</h2>
+        <div class="grid-form">
+          <input id="targetCompany" placeholder="Target Company" />
+          <input id="targetRole" placeholder="Target Role" />
+          <textarea id="jobDescription" placeholder="Paste job description"></textarea>
+          <textarea id="companyValues" placeholder="Company values / mission"></textarea>
+        </div>
+        <div class="button-row">
+          <button class="btn" id="generateCoverBtn">Generate Cover Letter</button>
+          <button class="btn secondary" id="generateResumeBtn">Generate Tailored Resume Summary</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Generated Output</h2>
+        <textarea id="generatedOutput" class="output" placeholder="Generated content will appear here..."></textarea>
+        <button class="btn" id="copyOutputBtn">Copy Output</button>
+      </div>
+    </section>
   </div>
 
-  <section class="section">
-    <h2 class="section-title">📤 Upload Files</h2>
-    
-    <div class="upload-grid">
-      <div class="upload-box" id="ar-upload-box">
-        <input type="file" id="ar-file" accept=".xlsx,.xls,.csv" class="file-input">
-        <label for="ar-file" style="cursor:pointer;display:block">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <div class="upload-title">AR Aging File</div>
-          <p style="color:#94a3b8;font-size:0.85rem">Oracle AR Open Items</p>
-          <span class="file-name" id="ar-file-name"></span>
-        </label>
-        <div class="preview" id="ar-preview"></div>
-      </div>
-
-      <div class="upload-box" id="bank-upload-box">
-        <input type="file" id="bank-file" accept=".xlsx,.xls,.csv" class="file-input" multiple>
-        <label for="bank-file" style="cursor:pointer;display:block">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <div class="upload-title">Bank Statement(s)</div>
-          <p style="color:#94a3b8;font-size:0.85rem">Up to 20 bank files</p>
-          <span class="file-name" id="bank-file-name"></span>
-        </label>
-        <div class="preview" id="bank-preview"></div>
-      </div>
-    </div>
-
-    <div style="text-align:center">
-      <button class="btn btn-secondary" id="generate-sample">Generate Sample Data</button>
-      <button class="btn btn-primary hidden" id="start-reconciliation">🚀 Start Reconciliation</button>
-    </div>
-  </section>
-
-  <section class="section hidden" id="results-section">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
-      <h2 class="section-title" style="margin:0">📊 Reconciliation Results</h2>
-      <button class="btn btn-success" id="export-excel">📥 Export to Excel</button>
-    </div>
-
-    <div class="stats-grid" id="stats-grid"></div>
-
-    <div class="tabs">
-      <button class="tab active" data-tab="matched">✓ Matched</button>
-      <button class="tab" data-tab="review">⚠ Needs Review</button>
-      <button class="tab" data-tab="unmatched-ar">Unmatched AR</button>
-      <button class="tab" data-tab="unmatched-bank">Unmatched Bank</button>
-    </div>
-
-    <div class="table-container">
-      <table id="results-table">
-        <thead id="results-thead"></thead>
-        <tbody id="results-tbody"></tbody>
-      </table>
-    </div>
-  </section>
-</div>
-
-<div class="modal" id="evidence-modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 class="modal-title">Match Evidence & Analysis</h2>
-      <button class="modal-close" onclick="closeModal()">×</button>
-    </div>
-    <div id="evidence-content"></div>
-  </div>
-</div>
-
-<script>
-console.log('🚀 DHCM Reconciliation System v2.0');
-
-const STATE={arData:[],bankData:[],matches:[],unmatchedAR:[],unmatchedBank:[],currentTab:'matched'};
-
-document.getElementById('ar-file').addEventListener('change',handleARUpload);
-document.getElementById('bank-file').addEventListener('change',handleBankUpload);
-document.getElementById('generate-sample').addEventListener('click',generateSampleData);
-document.getElementById('start-reconciliation').addEventListener('click',startReconciliation);
-document.getElementById('export-excel').addEventListener('click',exportToExcel);
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',e=>switchTab(e.target.dataset.tab)));
-
-async function handleARUpload(e){
-  const file=e.target.files[0];
-  if(!file)return;
-  
-  console.log('📄 AR File:',file.name);
-  
-  try{
-    const raw=await parseExcel(file);
-    console.log('📊 Raw rows:',raw.length);
-    console.log('📋 Columns:',Object.keys(raw[0]||{}));
-    console.log('🔍 Sample:',raw.slice(0,2));
-    
-    STATE.arData=normalizeAR(raw);
-    console.log('✅ AR items:',STATE.arData.length);
-    
-    document.getElementById('ar-file-name').textContent=file.name;
-    document.getElementById('ar-upload-box').classList.add('uploaded');
-    showARPreview(STATE.arData.slice(0,3));
-    checkReady();
-  }catch(err){
-    console.error('❌ Error:',err);
-    alert('Error: '+err.message);
-  }
-}
-
-async function handleBankUpload(e){
-  const files=Array.from(e.target.files);
-  if(!files.length)return;
-  
-  console.log('📄 Bank files:',files.length);
-  
-  try{
-    let all=[];
-    for(const file of files){
-      const raw=await parseExcel(file);
-      console.log(`📊 ${file.name}: ${raw.length} rows`);
-      console.log('📋 Columns:',Object.keys(raw[0]||{}));
-      const norm=normalizeBank(raw,file.name);
-      all=all.concat(norm);
-    }
-    
-    STATE.bankData=all;
-    console.log('✅ Total bank:',STATE.bankData.length);
-    
-    document.getElementById('bank-file-name').textContent=`${files.length} file(s) - ${STATE.bankData.length} txns`;
-    document.getElementById('bank-upload-box').classList.add('uploaded');
-    showBankPreview(STATE.bankData.slice(0,3));
-    checkReady();
-  }catch(err){
-    console.error('❌ Error:',err);
-    alert('Error: '+err.message);
-  }
-}
-
-function parseExcel(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const data=new Uint8Array(e.target.result);
-        const wb=XLSX.read(data,{type:'array',cellDates:true,raw:false});
-        const sheet=wb.Sheets[wb.SheetNames[0]];
-        const json=XLSX.utils.sheet_to_json(sheet,{raw:false,defval:'',dateNF:'yyyy-mm-dd',blankrows:false});
-        resolve(json);
-      }catch(err){reject(err)}
-    };
-    reader.onerror=()=>reject(new Error('Read failed'));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-function getVal(row,...keys){
-  for(const k of keys){
-    const v=row[k];
-    if(v!==undefined&&v!==null&&v!=='')return String(v).trim();
-  }
-  return '';
-}
-
-function normalizeAR(raw){
-  console.log('🔄 Normalizing AR...');
-  const items=[];
-  
-  for(let i=0;i<raw.length;i++){
-    const r=raw[i];
-    
-    const amtStr=getVal(r,'Amount Due Remaining','AmountDueRemaining','amount_due_remaining','AMOUNT_DUE_REMAINING','Amt Due Remaining','Amount Due','AmountDue');
-    const amt=parseFloat(amtStr.replace(/[^0-9.-]/g,''))||0;
-    
-    if(amt<=0){
-      console.log(`⏭️ Skip row ${i+1}: amt=${amt}`);
-      continue;
-    }
-    
-    const txn=getVal(r,'Transaction Number','TransactionNumber','transaction_number','TRANSACTION_NUMBER','Trx Number','TrxNumber','Invoice Number','InvoiceNumber')||`TXN-${i+1}`;
-    const cust=getVal(r,'Customer Name','CustomerName','customer_name','CUSTOMER_NAME','Debtor','DebtorName','Account Name','AccountName');
-    const desc=getVal(r,'Transaction Description','TransactionDescription','transaction_description','TRANSACTION_DESCRIPTION','Description','DESCRIPTION','Narration','NARRATION');
-    const date=getVal(r,'Transaction Date','TransactionDate','transaction_date','TRANSACTION_DATE','Invoice Date','InvoiceDate','Date','DATE');
-    const due=getVal(r,'Due Date','DueDate','due_date','DUE_DATE','Payment Due','PaymentDue');
-    
-    items.push({
-      id:`ar-${i}`,
-      transactionNumber:txn,
-      customerName:cust,
-      transactionDescription:desc,
-      transactionDate:date,
-      dueDate:due,
-      amountDueRemaining:amt,
-      entities:extractEntities(desc)
-    });
-    
-    console.log(`✅ AR ${i+1}: ${txn} - ${cust} - ${amt}`);
-  }
-  
-  console.log(`✅ Normalized ${items.length} AR`);
-  return items;
-}
-
-function normalizeBank(raw,fileName){
-  console.log(`🔄 Normalizing bank: ${fileName}`);
-  const items=[];
-  
-  for(let i=0;i<raw.length;i++){
-    const r=raw[i];
-    
-    // CRITICAL: Your bank files use "Credit Amount" or "Credit" or "PAYMENT ALLOCATION"
-    const creditStr=getVal(r,
-      'Credit Amount','CreditAmount','credit_amount','CREDIT_AMOUNT',
-      'Credit','credit','CREDIT',
-      'PAYMENT ALLOCATION','Payment Allocation',
-      'Debit Amount','DebitAmount','debit_amount','DEBIT_AMOUNT',
-      'Amount','amount','AMOUNT'
-    );
-    
-    const credit=parseFloat(creditStr.replace(/[^0-9.-]/g,''))||0;
-    
-    if(credit<=0){
-      console.log(`⏭️ Skip bank row ${i+1}: credit=${credit}`);
-      continue;
-    }
-    
-    // Your files have: "Narration", "Transaction Descript", "Transaction Description"
-    const narr=getVal(r,
-      'Narration','narration','NARRATION',
-      'Transaction Descript','TransactionDescript','transaction_descript',
-      'Transaction Description','TransactionDescription','transaction_description',
-      'Transaction Remarks','TransactionRemarks','transaction_remarks',
-      'Description','description','DESCRIPTION'
-    );
-    
-    // Your files have: "Transaction ID", "Transaction Referenc", "RECEIPT NUMBER"
-    const ref=getVal(r,
-      'Transaction ID','TransactionID','transaction_id','TRANSACTION_ID',
-      'Transaction Referenc','TransactionReferenc','transaction_referenc',
-      'Transaction Reference','TransactionReference','transaction_reference',
-      'RECEIPT NUMBER','Receipt Number','ReceiptNumber','receipt_number',
-      'Reference','reference','REFERENCE','Ref','REF'
-    )||`BANK-${i+1}`;
-    
-    // Your files have: "Value Date", "Date"
-    const date=getVal(r,
-      'Value Date','ValueDate','value_date','VALUE_DATE',
-      'Date','date','DATE',
-      'Transaction Date','TransactionDate','transaction_date'
-    );
-    
-    // Your files have: "INVOICE NUMBERS", "proforma no"
-    const invNums=getVal(r,
-      'INVOICE NUMBERS','Invoice Numbers','InvoiceNumbers','invoice_numbers',
-      'proforma no','Proforma No','ProformaNo','proforma_no',
-      'Invoice Number','InvoiceNumber','invoice_number'
-    );
-    
-    // Your files have: "STATUS", "status"
-    const status=getVal(r,'STATUS','Status','status');
-    
-    const parsed=parseNarration(narr,invNums);
-    
-    items.push({
-      id:`bank-${fileName}-${i}`,
-      valueDate:date,
-      narration:narr,
-      transactionReference:ref,
-      credit:credit,
-      currency:getVal(r,'Currency','currency','CURRENCY')||'AED',
-      invoiceNumbers:invNums,
-      status:status,
-      parsedEntities:parsed
-    });
-    
-    console.log(`✅ Bank ${i+1}: ${ref} - ${credit} - ${narr.substring(0,40)}...`);
-  }
-  
-  console.log(`✅ Normalized ${items.length} bank`);
-  return items;
-}
-
-function extractEntities(desc){
-  if(!desc)return{reqNumbers:[],tmCodes:[],keywords:[]};
-  
-  const req=(desc.match(/REQ-\d{7}/gi)||[]).map(r=>r.toUpperCase());
-  const tm=(desc.match(/TM\d{3,4}/gi)||[]).map(t=>t.toUpperCase());
-  
-  const kw=[];
-  const patterns=['NOC','TEMPORARY ACCESS','PERMIT','RENEWAL','ENCROACHMENT','SIGNAGE','FIT OUT','FITOUT'];
-  const upper=desc.toUpperCase();
-  patterns.forEach(p=>{if(upper.includes(p))kw.push(p)});
-  
-  return{reqNumbers:req,tmCodes:tm,keywords:kw};
-}
-
-function parseNarration(narr,invNums){
-  const result={
-    transactionNumbers:[],
-    invoiceNumbers:[],
-    reqNumbers:[],
-    tmCodes:[],
-    bankRefs:[],
-    keywords:[]
-  };
-  
-  if(!narr)return result;
-  
-  // Transaction numbers (12-18 digits)
-  const txn=narr.match(/\b\d{12,18}\b/g);
-  if(txn)result.transactionNumbers=[...new Set(txn)];
-  
-  // Invoice numbers from field
-  if(invNums){
-    const inv=invNums.match(/\b\d{12,18}\b/g);
-    if(inv)result.invoiceNumbers=[...new Set(inv)];
-  }
-  
-  // REQ numbers
-  const req=narr.match(/REQ-\d{7}/gi);
-  if(req)result.reqNumbers=[...new Set(req.map(r=>r.toUpperCase()))];
-  
-  // TM codes
-  const tm=narr.match(/TM\d{3,4}/gi);
-  if(tm)result.tmCodes=[...new Set(tm.map(t=>t.toUpperCase()))];
-  
-  // Bank refs
-  const ae0=narr.match(/AE0\d{7,}/gi);
-  const sdme=narr.match(/SDME\d{9,}/gi);
-  const tt=narr.match(/TT\s*REF[:\s]*[\w\d]+/gi);
-  const hts=narr.match(/HTS\d{12,}/gi);
-  result.bankRefs=[...(ae0||[]),...(sdme||[]),...(tt||[]),...(hts||[])].map(r=>r.toUpperCase());
-  
-  // Keywords
-  const kw=['NOC','TEMPORARY ACCESS','PERMIT','RENEWAL','ENCROACHMENT','SIGNAGE','FIT OUT','FITOUT'];
-  const upper=narr.toUpperCase();
-  kw.forEach(k=>{if(upper.includes(k))result.keywords.push(k)});
-  
-  return result;
-}
-
-function showARPreview(items){
-  if(!items.length){
-    document.getElementById('ar-preview').innerHTML='<p style="color:#f59e0b">No valid AR items (Amount Due > 0)</p>';
-    return;
-  }
-  
-  let html=`<h4>✅ Loaded ${STATE.arData.length} AR Items</h4>`;
-  items.forEach(item=>{
-    html+=`<div class="preview-item">
-      <span class="preview-label">Transaction #:</span>
-      <span class="preview-value">${item.transactionNumber}</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Customer:</span>
-      <span class="preview-value">${item.customerName}</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Amount Due:</span>
-      <span class="preview-value">${item.amountDueRemaining.toFixed(2)} AED</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Date:</span>
-      <span class="preview-value">${item.transactionDate}</span>
-    </div>
-    <div style="height:0.5rem"></div>`;
-  });
-  
-  document.getElementById('ar-preview').innerHTML=html;
-}
-
-function showBankPreview(items){
-  if(!items.length){
-    document.getElementById('bank-preview').innerHTML='<p style="color:#f59e0b">No valid bank txns (Credit > 0)</p>';
-    return;
-  }
-  
-  let html=`<h4>✅ Loaded ${STATE.bankData.length} Bank Transactions</h4>`;
-  items.forEach(item=>{
-    html+=`<div class="preview-item">
-      <span class="preview-label">Reference:</span>
-      <span class="preview-value">${item.transactionReference}</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Credit:</span>
-      <span class="preview-value">${item.credit.toFixed(2)} ${item.currency}</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Date:</span>
-      <span class="preview-value">${item.valueDate}</span>
-    </div>
-    <div class="preview-item">
-      <span class="preview-label">Narration:</span>
-      <span class="preview-value">${item.narration.substring(0,50)}...</span>
-    </div>
-    <div style="height:0.5rem"></div>`;
-  });
-  
-  document.getElementById('bank-preview').innerHTML=html;
-}
-
-function checkReady(){
-  if(STATE.arData.length>0&&STATE.bankData.length>0){
-    document.getElementById('start-reconciliation').classList.remove('hidden');
-  }
-}
-
-function generateSampleData(){
-  STATE.arData=[
-    {id:'ar-1',transactionNumber:'256010013002797',customerName:'ACME Corporation',transactionDescription:'NOC - Temporary Access REQ-1234567',transactionDate:'2024-01-15',dueDate:'2024-02-15',amountDueRemaining:5250.00,entities:{reqNumbers:['REQ-1234567'],tmCodes:[],keywords:['NOC','TEMPORARY ACCESS']}},
-    {id:'ar-2',transactionNumber:'266010013000080',customerName:'Global Industries Ltd',transactionDescription:'Permit Renewal TM1234',transactionDate:'2024-01-20',dueDate:'2024-02-20',amountDueRemaining:1050.00,entities:{reqNumbers:[],tmCodes:['TM1234'],keywords:['PERMIT','RENEWAL']}},
-    {id:'ar-3',transactionNumber:'256010013002800',customerName:'Tech Solutions Inc',transactionDescription:'Encroachment Fee REQ-7654321',transactionDate:'2024-01-25',dueDate:'2024-02-25',amountDueRemaining:3500.00,entities:{reqNumbers:['REQ-7654321'],tmCodes:[],keywords:['ENCROACHMENT']}}
-  ];
-  
-  STATE.bankData=[
-    {id:'bank-1',valueDate:'2024-01-18',narration:'PAYMENT FROM ACME CORPORATION FOR INVOICE 256010013002797 NOC TEMPORARY ACCESS REQ-1234567',transactionReference:'AE0123456789',credit:5250.00,currency:'AED',invoiceNumbers:'256010013002797',status:'cleared',parsedEntities:{transactionNumbers:['256010013002797'],invoiceNumbers:['256010013002797'],reqNumbers:['REQ-1234567'],tmCodes:[],bankRefs:['AE0123456789'],keywords:['NOC','TEMPORARY ACCESS']}},
-    {id:'bank-2',valueDate:'2024-01-22',narration:'TXN BY GLOBAL INDUSTRIES LTD TM1234 PERMIT RENEWAL',transactionReference:'SDME987654321',credit:1050.00,currency:'AED',invoiceNumbers:'',status:'cleared',parsedEntities:{transactionNumbers:[],invoiceNumbers:[],reqNumbers:[],tmCodes:['TM1234'],bankRefs:['SDME987654321'],keywords:['PERMIT','RENEWAL']}},
-    {id:'bank-3',valueDate:'2024-01-27',narration:'PAYMENT FROM TECH SOLUTIONS INC REQ-7654321 ENCROACHMENT FEE',transactionReference:'TT REF 555',credit:3500.00,currency:'AED',invoiceNumbers:'',status:'cleared',parsedEntities:{transactionNumbers:[],invoiceNumbers:[],reqNumbers:['REQ-7654321'],tmCodes:[],bankRefs:['TT REF 555'],keywords:['ENCROACHMENT']}}
-  ];
-  
-  document.getElementById('ar-file-name').textContent='Sample_AR.xlsx';
-  document.getElementById('ar-upload-box').classList.add('uploaded');
-  showARPreview(STATE.arData);
-  
-  document.getElementById('bank-file-name').textContent='Sample_Bank.xlsx';
-  document.getElementById('bank-upload-box').classList.add('uploaded');
-  showBankPreview(STATE.bankData);
-  
-  checkReady();
-}
-
-function startReconciliation(){
-  console.log('🚀 Starting reconciliation...');
-  
-  const passA=runPassA();
-  const passB=runPassB();
-  const passC=runPassC();
-  
-  STATE.matches=[...passA,...passB,...passC];
-  
-  const matchedAR=new Set(STATE.matches.map(m=>m.arItemId));
-  const matchedBank=new Set(STATE.matches.map(m=>m.bankTransactionId));
-  
-  STATE.unmatchedAR=STATE.arData.filter(ar=>!matchedAR.has(ar.id));
-  STATE.unmatchedBank=STATE.bankData.filter(b=>!matchedBank.has(b.id));
-  
-  console.log('✅ Complete');
-  console.log('Matches:',STATE.matches.length);
-  console.log('Unmatched AR:',STATE.unmatchedAR.length);
-  console.log('Unmatched Bank:',STATE.unmatchedBank.length);
-  
-  displayResults();
-}
-
-function runPassA(){
-  console.log('🔍 Pass A: Strong Identifier');
-  const matches=[];
-  const used=new Set();
-  
-  for(const ar of STATE.arData){
-    for(const bank of STATE.bankData){
-      if(used.has(bank.id))continue;
-      
-      const txn=ar.transactionNumber;
-      const inNarr=bank.narration.toUpperCase().includes(txn.toUpperCase());
-      const inInv=bank.invoiceNumbers&&bank.invoiceNumbers.includes(txn);
-      const inParsed=bank.parsedEntities.transactionNumbers.includes(txn)||bank.parsedEntities.invoiceNumbers.includes(txn);
-      
-      if(inNarr||inInv||inParsed){
-        matches.push({
-          id:`m-${matches.length}`,
-          arItemId:ar.id,
-          bankTransactionId:bank.id,
-          matchMethod:'PASS_A',
-          confidenceScore:95,
-          allocatedAmount:Math.min(ar.amountDueRemaining,bank.credit),
-          explanation:`Transaction Number "${txn}" found in ${inNarr?'narration':inInv?'invoice field':'parsed data'}`,
-          status:'AUTO_MATCHED'
-        });
-        used.add(bank.id);
-        console.log(`✅ ${ar.transactionNumber} ↔ ${bank.transactionReference}`);
-        break;
-      }
-    }
-  }
-  
-  console.log(`Pass A: ${matches.length}`);
-  return matches;
-}
-
-function runPassB(){
-  console.log('🔍 Pass B: Structured Reference');
-  const matches=[];
-  const usedAR=new Set(STATE.matches.map(m=>m.arItemId));
-  const usedBank=new Set(STATE.matches.map(m=>m.bankTransactionId));
-  
-  for(const ar of STATE.arData){
-    if(usedAR.has(ar.id))continue;
-    
-    for(const bank of STATE.bankData){
-      if(usedBank.has(bank.id))continue;
-      
-      const reqMatch=ar.entities.reqNumbers.some(req=>bank.parsedEntities.reqNumbers.includes(req));
-      const tmMatch=ar.entities.tmCodes.some(tm=>bank.parsedEntities.tmCodes.includes(tm));
-      
-      if(reqMatch||tmMatch){
-        matches.push({
-          id:`m-${STATE.matches.length+matches.length}`,
-          arItemId:ar.id,
-          bankTransactionId:bank.id,
-          matchMethod:'PASS_B',
-          confidenceScore:88,
-          allocatedAmount:Math.min(ar.amountDueRemaining,bank.credit),
-          explanation:`${reqMatch?'REQ number':'TM code'} matched`,
-          status:'NEEDS_REVIEW'
-        });
-        usedBank.add(bank.id);
-        console.log(`✅ ${ar.transactionNumber} ↔ ${bank.transactionReference} (REF)`);
-        break;
-      }
-    }
-  }
-  
-  console.log(`Pass B: ${matches.length}`);
-  return matches;
-}
-
-function runPassC(){
-  console.log('🔍 Pass C: Controlled Fuzzy');
-  const matches=[];
-  const usedAR=new Set(STATE.matches.map(m=>m.arItemId));
-  const usedBank=new Set(STATE.matches.map(m=>m.bankTransactionId));
-  
-  for(const ar of STATE.arData){
-    if(usedAR.has(ar.id))continue;
-    
-    for(const bank of STATE.bankData){
-      if(usedBank.has(bank.id))continue;
-      
-      const diff=Math.abs(ar.amountDueRemaining-bank.credit);
-      const ok=diff<=0.50||diff/ar.amountDueRemaining<=0.001;
-      
-      if(!ok)continue;
-      
-      const kwMatch=ar.entities.keywords.some(k=>bank.parsedEntities.keywords.includes(k));
-      
-      if(kwMatch){
-        matches.push({
-          id:`m-${STATE.matches.length+matches.length}`,
-          arItemId:ar.id,
-          bankTransactionId:bank.id,
-          matchMethod:'PASS_C',
-          confidenceScore:75,
-          allocatedAmount:Math.min(ar.amountDueRemaining,bank.credit),
-          explanation:`Keyword match + amount tolerance`,
-          status:'NEEDS_REVIEW'
-        });
-        usedBank.add(bank.id);
-        console.log(`✅ ${ar.transactionNumber} ↔ ${bank.transactionReference} (FUZZY)`);
-        break;
-      }
-    }
-  }
-  
-  console.log(`Pass C: ${matches.length}`);
-  return matches;
-}
-
-function displayResults(){
-  document.getElementById('results-section').classList.remove('hidden');
-  
-  const matched=STATE.matches.filter(m=>m.status==='AUTO_MATCHED');
-  const review=STATE.matches.filter(m=>m.status==='NEEDS_REVIEW');
-  
-  const totalAR=STATE.arData.reduce((s,ar)=>s+ar.amountDueRemaining,0);
-  const matchedAmt=matched.reduce((s,m)=>s+m.allocatedAmount,0);
-  
-  document.getElementById('stats-grid').innerHTML=`
-    <div class="stat-card">
-      <div class="stat-value">${STATE.arData.length}</div>
-      <div class="stat-label">Total AR Items</div>
-      <div class="stat-subtitle">${totalAR.toFixed(2)} AED</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${matched.length}</div>
-      <div class="stat-label">Auto-Matched</div>
-      <div class="stat-subtitle">${matchedAmt.toFixed(2)} AED</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${review.length}</div>
-      <div class="stat-label">Needs Review</div>
-      <div class="stat-subtitle">70-89% confidence</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${STATE.unmatchedAR.length+STATE.unmatchedBank.length}</div>
-      <div class="stat-label">Unmatched</div>
-      <div class="stat-subtitle">${STATE.unmatchedAR.length} AR, ${STATE.unmatchedBank.length} Bank</div>
-    </div>
-  `;
-  
-  switchTab('matched');
-}
-
-function switchTab(tab){
-  STATE.currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-  
-  if(tab==='matched'){
-    renderMatchTable(STATE.matches.filter(m=>m.status==='AUTO_MATCHED'));
-  }else if(tab==='review'){
-    renderMatchTable(STATE.matches.filter(m=>m.status==='NEEDS_REVIEW'));
-  }else if(tab==='unmatched-ar'){
-    renderUnmatchedAR();
-  }else if(tab==='unmatched-bank'){
-    renderUnmatchedBank();
-  }
-}
-
-function renderMatchTable(data){
-  const thead='<tr><th>AR Transaction #</th><th>Bank Reference</th><th>Customer</th><th>Amount</th><th>Method</th><th>Score</th><th>Explanation</th><th>Evidence</th></tr>';
-  const tbody=data.map(m=>{
-    const ar=STATE.arData.find(a=>a.id===m.arItemId);
-    const bank=STATE.bankData.find(b=>b.id===m.bankTransactionId);
-    const badge=m.status==='AUTO_MATCHED'?'badge-success':'badge-warning';
-    return`<tr>
-      <td><strong>${ar.transactionNumber}</strong></td>
-      <td>${bank.transactionReference}</td>
-      <td>${ar.customerName}</td>
-      <td><strong>${m.allocatedAmount.toFixed(2)} AED</strong></td>
-      <td><span class="badge ${badge}">${m.matchMethod}</span></td>
-      <td><strong style="color:#10b981">${m.confidenceScore}%</strong></td>
-      <td>${m.explanation}</td>
-      <td><button class="btn-evidence" onclick="showEvidence('${m.id}')">View</button></td>
-    </tr>`;
-  }).join('');
-  
-  document.getElementById('results-thead').innerHTML=thead;
-  document.getElementById('results-tbody').innerHTML=tbody||'<tr><td colspan="8" style="text-align:center;padding:2rem;color:#94a3b8">No data</td></tr>';
-}
-
-function renderUnmatchedAR(){
-  const thead='<tr><th>Transaction #</th><th>Customer</th><th>Amount Due</th><th>Date</th><th>Description</th></tr>';
-  const tbody=STATE.unmatchedAR.map(ar=>`<tr>
-    <td><strong>${ar.transactionNumber}</strong></td>
-    <td>${ar.customerName}</td>
-    <td><strong>${ar.amountDueRemaining.toFixed(2)} AED</strong></td>
-    <td>${ar.transactionDate}</td>
-    <td>${ar.transactionDescription.substring(0,60)}...</td>
-  </tr>`).join('');
-  
-  document.getElementById('results-thead').innerHTML=thead;
-  document.getElementById('results-tbody').innerHTML=tbody||'<tr><td colspan="5" style="text-align:center;padding:2rem;color:#10b981">All AR matched!</td></tr>';
-}
-
-function renderUnmatchedBank(){
-  const thead='<tr><th>Reference</th><th>Narration</th><th>Credit</th><th>Date</th><th>Status</th></tr>';
-  const tbody=STATE.unmatchedBank.map(b=>`<tr>
-    <td>${b.transactionReference}</td>
-    <td>${b.narration.substring(0,70)}...</td>
-    <td><strong>${b.credit.toFixed(2)} ${b.currency}</strong></td>
-    <td>${b.valueDate}</td>
-    <td>${b.status||'N/A'}</td>
-  </tr>`).join('');
-  
-  document.getElementById('results-thead').innerHTML=thead;
-  document.getElementById('results-tbody').innerHTML=tbody||'<tr><td colspan="5" style="text-align:center;padding:2rem;color:#10b981">All bank matched!</td></tr>';
-}
-
-function showEvidence(matchId){
-  const m=STATE.matches.find(x=>x.id===matchId);
-  if(!m)return;
-  
-  const ar=STATE.arData.find(a=>a.id===m.arItemId);
-  const bank=STATE.bankData.find(b=>b.id===m.bankTransactionId);
-  
-  const html=`
-    <div class="evidence-section">
-      <h3 class="evidence-title">Match Details</h3>
-      <div class="evidence-grid">
-        <div class="evidence-item"><span class="evidence-label">Match Method:</span><span class="evidence-value">${m.matchMethod}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Confidence Score:</span><span class="evidence-value">${m.confidenceScore}%</span></div>
-        <div class="evidence-item"><span class="evidence-label">Status:</span><span class="evidence-value">${m.status}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Allocated Amount:</span><span class="evidence-value">${m.allocatedAmount.toFixed(2)} AED</span></div>
-      </div>
-    </div>
-    
-    <div class="evidence-section">
-      <h3 class="evidence-title">AR Item</h3>
-      <div class="evidence-grid">
-        <div class="evidence-item"><span class="evidence-label">Transaction Number:</span><span class="evidence-value">${ar.transactionNumber}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Customer:</span><span class="evidence-value">${ar.customerName}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Amount Due:</span><span class="evidence-value">${ar.amountDueRemaining.toFixed(2)} AED</span></div>
-        <div class="evidence-item"><span class="evidence-label">Date:</span><span class="evidence-value">${ar.transactionDate}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Description:</span><span class="evidence-value">${ar.transactionDescription}</span></div>
-      </div>
-    </div>
-    
-    <div class="evidence-section">
-      <h3 class="evidence-title">Bank Transaction</h3>
-      <div class="evidence-grid">
-        <div class="evidence-item"><span class="evidence-label">Reference:</span><span class="evidence-value">${bank.transactionReference}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Credit:</span><span class="evidence-value">${bank.credit.toFixed(2)} ${bank.currency}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Date:</span><span class="evidence-value">${bank.valueDate}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Status:</span><span class="evidence-value">${bank.status||'N/A'}</span></div>
-        <div class="evidence-item"><span class="evidence-label">Narration:</span><span class="evidence-value">${bank.narration}</span></div>
-      </div>
-    </div>
-    
-    <div class="evidence-section">
-      <h3 class="evidence-title">Explanation</h3>
-      <p style="color:#cbd5e1;line-height:1.6">${m.explanation}</p>
-    </div>
-  `;
-  
-  document.getElementById('evidence-content').innerHTML=html;
-  document.getElementById('evidence-modal').classList.add('show');
-}
-
-function closeModal(){
-  document.getElementById('evidence-modal').classList.remove('show');
-}
-
-function exportToExcel(){
-  const wb=XLSX.utils.book_new();
-  
-  const matched=STATE.matches.filter(m=>m.status==='AUTO_MATCHED');
-  const review=STATE.matches.filter(m=>m.status==='NEEDS_REVIEW');
-  
-  const matchedData=matched.map(m=>{
-    const ar=STATE.arData.find(a=>a.id===m.arItemId);
-    const bank=STATE.bankData.find(b=>b.id===m.bankTransactionId);
-    return{
-      'AR Transaction Number':ar.transactionNumber,
-      'Bank Reference':bank.transactionReference,
-      'Customer Name':ar.customerName,
-      'Allocated Amount':m.allocatedAmount,
-      'Bank Date':bank.valueDate,
-      'Invoice Date':ar.transactionDate,
-      'Match Method':m.matchMethod,
-      'Confidence Score':m.confidenceScore+'%',
-      'Explanation':m.explanation
-    };
-  });
-  
-  const reviewData=review.map(m=>{
-    const ar=STATE.arData.find(a=>a.id===m.arItemId);
-    const bank=STATE.bankData.find(b=>b.id===m.bankTransactionId);
-    return{
-      'AR Transaction Number':ar.transactionNumber,
-      'Bank Reference':bank.transactionReference,
-      'Customer Name':ar.customerName,
-      'Allocated Amount':m.allocatedAmount,
-      'Bank Date':bank.valueDate,
-      'Invoice Date':ar.transactionDate,
-      'Match Method':m.matchMethod,
-      'Confidence Score':m.confidenceScore+'%',
-      'Explanation':m.explanation
-    };
-  });
-  
-  const unmatchedARData=STATE.unmatchedAR.map(ar=>({
-    'Transaction Number':ar.transactionNumber,
-    'Customer Name':ar.customerName,
-    'Amount Due Remaining':ar.amountDueRemaining,
-    'Transaction Date':ar.transactionDate,
-    'Due Date':ar.dueDate,
-    'Description':ar.transactionDescription
-  }));
-  
-  const unmatchedBankData=STATE.unmatchedBank.map(b=>({
-    'Bank Reference':b.transactionReference,
-    'Narration':b.narration,
-    'Credit':b.credit,
-    'Date':b.valueDate,
-    'Currency':b.currency,
-    'Status':b.status||''
-  }));
-  
-  const summary=[
-    ['DHCM AR RECONCILIATION REPORT'],
-    ['Generated:',new Date().toLocaleString()],
-    [''],
-    ['SUMMARY'],
-    ['Total AR Items',STATE.arData.length],
-    ['Total Bank Transactions',STATE.bankData.length],
-    ['Auto-Matched',matched.length],
-    ['Needs Review',review.length],
-    ['Unmatched AR',STATE.unmatchedAR.length],
-    ['Unmatched Bank',STATE.unmatchedBank.length]
-  ];
-  
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');
-  if(matchedData.length>0)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(matchedData),'Matched');
-  if(reviewData.length>0)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(reviewData),'Needs Review');
-  if(unmatchedARData.length>0)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unmatchedARData),'Unmatched AR');
-  if(unmatchedBankData.length>0)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unmatchedBankData),'Unmatched Bank');
-  
-  XLSX.writeFile(wb,`DHCM_Reconciliation_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-window.showEvidence=showEvidence;
-window.closeModal=closeModal;
-
-console.log('✅ System ready - Upload your files!');
-</script>
+  <script src="app.js"></script>
 </body>
 </html>

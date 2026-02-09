@@ -1,410 +1,188 @@
-// O2C Reconciliation Platform - Main Application Logic
-// This file handles Excel file processing, data matching, and reconciliation
+const STORAGE_KEY = 'aiJobAgentDataV1';
+const state = {
+  applications: [],
+  profile: {}
+};
 
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
-let arData = [];      // Stores AR (Accounts Receivable) data from Excel
-let bankData = [];    // Stores Bank statement data from Excel
-let matchedRecords = [];    // Stores successfully matched records
-let unmatchedAR = [];       // Stores unmatched AR records
-let unmatchedBank = [];     // Stores unmatched Bank records
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
+  try {
+    const parsed = JSON.parse(saved);
+    state.applications = parsed.applications || [];
+    state.profile = parsed.profile || {};
+  } catch {
+    state.applications = [];
+    state.profile = {};
+  }
+}
 
-// ============================================
-// EXCEL FILE PROCESSING
-// ============================================
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
 
-/**
- * Reads an Excel file and converts it to JSON format
- * @param {File} file - The Excel file to read
- * @returns {Promise<Array>} - Array of row objects
- */
-function readExcelFile(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            try {
-                // Read the file as binary string
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                
-                // Get the first sheet
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Convert sheet to JSON
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { 
-                    raw: false,  // Keep formatting
-                    defval: ''   // Default value for empty cells
-                });
-                
-                resolve(jsonData);
-            } catch (error) {
-                reject(error);
-            }
-        };
-        
-        reader.onerror = function(error) {
-            reject(error);
-        };
-        
-        reader.readAsArrayBuffer(file);
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === tabId);
+  });
+}
+
+function statusClass(status) {
+  return status.toLowerCase().replaceAll(' ', '-');
+}
+
+function renderApplications() {
+  const body = document.getElementById('applicationTableBody');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const platformFilter = document.getElementById('platformFilter').value;
+  const statusFilter = document.getElementById('statusFilter').value;
+
+  const rows = state.applications.filter(app => {
+    const haystack = `${app.company} ${app.role} ${app.location || ''}`.toLowerCase();
+    const matchesSearch = haystack.includes(search);
+    const matchesPlatform = platformFilter === 'all' || app.platform === platformFilter;
+    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+    return matchesSearch && matchesPlatform && matchesStatus;
+  });
+
+  body.innerHTML = rows.map(app => `
+    <tr>
+      <td>${app.appliedOn}</td>
+      <td>${app.platform}</td>
+      <td>${app.company}</td>
+      <td>${app.role}</td>
+      <td><span class="badge ${statusClass(app.status)}">${app.status}</span></td>
+      <td><button class="btn secondary" onclick="removeApplication('${app.id}')">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderDashboard() {
+  const total = state.applications.length;
+  const interview = state.applications.filter(a => a.status === 'Interview').length;
+  const offer = state.applications.filter(a => a.status === 'Offer').length;
+  const responded = state.applications.filter(a => ['Under Review', 'Interview', 'Offer'].includes(a.status)).length;
+  const responseRate = total ? Math.round((responded / total) * 100) : 0;
+
+  document.getElementById('totalApplications').textContent = total;
+  document.getElementById('interviewCount').textContent = interview;
+  document.getElementById('offerCount').textContent = offer;
+  document.getElementById('responseRate').textContent = `${responseRate}%`;
+
+  const pipelineStatuses = ['Applied', 'Under Review', 'Interview', 'Offer', 'Rejected'];
+  const pipelineHtml = pipelineStatuses.map(status => {
+    const count = state.applications.filter(a => a.status === status).length;
+    const width = total ? (count / total) * 100 : 0;
+    return `<div class="pipeline-row"><strong>${status}</strong><div class="bar-wrap"><div class="bar" style="width:${width}%"></div></div><span>${count}</span></div>`;
+  }).join('');
+  document.getElementById('pipelineBars').innerHTML = pipelineHtml;
+
+  const recent = [...state.applications]
+    .sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn))
+    .slice(0, 5);
+
+  document.getElementById('recentTableBody').innerHTML = recent.map(app => `
+    <tr><td>${app.appliedOn}</td><td>${app.platform}</td><td>${app.company}</td><td>${app.role}</td><td>${app.status}</td></tr>
+  `).join('');
+}
+
+function fillProfileForm() {
+  const fields = ['fullName', 'email', 'phone', 'experience', 'skills', 'achievements'];
+  fields.forEach(key => {
+    if (state.profile[key]) document.getElementById(key).value = state.profile[key];
+  });
+}
+
+function removeApplication(id) {
+  state.applications = state.applications.filter(app => app.id !== id);
+  saveState();
+  renderApplications();
+  renderDashboard();
+}
+window.removeApplication = removeApplication;
+
+function generateCoverLetter() {
+  const profile = state.profile;
+  const company = document.getElementById('targetCompany').value || 'Hiring Team';
+  const role = document.getElementById('targetRole').value || 'the role';
+  const jobDescription = document.getElementById('jobDescription').value;
+  const companyValues = document.getElementById('companyValues').value;
+
+  return `Dear ${company} Recruitment Team,\n\nI am excited to apply for ${role}. With ${profile.experience || 'several'} years of experience, I have delivered measurable outcomes in ${profile.skills || 'core business functions'}.\n\nMy relevant achievements include:\n${profile.achievements || '- Led high-impact initiatives across teams.'}\n\nI am particularly drawn to your team because: ${companyValues || 'your commitment to innovation and execution excellence'}.\n\nBased on the job requirements, I can contribute immediately in:\n${jobDescription || '- Stakeholder collaboration\n- Data-driven execution\n- Process optimization'}\n\nThank you for considering my application.\n\nSincerely,\n${profile.fullName || 'Candidate'}`;
+}
+
+function generateTailoredResumeSummary() {
+  const profile = state.profile;
+  const role = document.getElementById('targetRole').value || 'target role';
+  const description = document.getElementById('jobDescription').value;
+  const skills = (profile.skills || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  return `Professional Summary\n${profile.fullName || 'Candidate'} is a results-focused professional with ${profile.experience || 'multiple'} years of experience, targeting ${role}.\n\nCore Skills\n${skills.length ? skills.map(s => `• ${s}`).join('\n') : '• Cross-functional collaboration\n• Project execution\n• Analytical problem solving'}\n\nTailored Positioning\n${description || 'Align experience with the role by emphasizing customer impact, measurable achievements, and ownership.'}\n\nHighlighted Achievement\n${profile.achievements || 'Drove continuous improvement initiatives that improved performance metrics and stakeholder satisfaction.'}`;
+}
+
+function bindEvents() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  document.getElementById('applicationForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const app = {
+      id: crypto.randomUUID(),
+      platform: document.getElementById('platform').value,
+      company: document.getElementById('company').value,
+      role: document.getElementById('role').value,
+      location: document.getElementById('location').value,
+      jobUrl: document.getElementById('jobUrl').value,
+      status: document.getElementById('status').value,
+      notes: document.getElementById('notes').value,
+      appliedOn: new Date().toISOString().slice(0, 10)
+    };
+    state.applications.unshift(app);
+    saveState();
+    event.target.reset();
+    renderApplications();
+    renderDashboard();
+  });
+
+  ['searchInput', 'platformFilter', 'statusFilter'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderApplications);
+    document.getElementById(id).addEventListener('change', renderApplications);
+  });
+
+  document.getElementById('profileForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const fields = ['fullName', 'email', 'phone', 'experience', 'skills', 'achievements'];
+    fields.forEach(field => {
+      state.profile[field] = document.getElementById(field).value;
     });
+    saveState();
+  });
+
+  document.getElementById('generateCoverBtn').addEventListener('click', () => {
+    document.getElementById('generatedOutput').value = generateCoverLetter();
+  });
+
+  document.getElementById('generateResumeBtn').addEventListener('click', () => {
+    document.getElementById('generatedOutput').value = generateTailoredResumeSummary();
+  });
+
+  document.getElementById('copyOutputBtn').addEventListener('click', async () => {
+    const text = document.getElementById('generatedOutput').value;
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+  });
 }
 
-/**
- * Normalizes column names by removing spaces and converting to lowercase
- * This helps match columns even if they have different formatting
- */
-function normalizeHeaders(data) {
-    return data.map(row => {
-        const normalizedRow = {};
-        for (let key in row) {
-            // Convert "Customer Name" to "customername"
-            const normalizedKey = key.toLowerCase().replace(/\s+/g, '');
-            normalizedRow[normalizedKey] = row[key];
-        }
-        return normalizedRow;
-    });
+function init() {
+  loadState();
+  bindEvents();
+  fillProfileForm();
+  renderApplications();
+  renderDashboard();
 }
 
-/**
- * Parses amount strings and converts them to numbers
- * Handles formats like: "$1,234.56", "1234.56", "(1234.56)" for negatives
- */
-function parseAmount(value) {
-    if (!value) return 0;
-    
-    // Convert to string and remove currency symbols, commas
-    let cleanValue = String(value).replace(/[$,]/g, '');
-    
-    // Handle negative numbers in parentheses: (1234.56) -> -1234.56
-    if (cleanValue.includes('(') && cleanValue.includes(')')) {
-        cleanValue = '-' + cleanValue.replace(/[()]/g, '');
-    }
-    
-    return parseFloat(cleanValue) || 0;
-}
-
-/**
- * Parses date strings into Date objects
- * Handles multiple date formats
- */
-function parseDate(value) {
-    if (!value) return null;
-    
-    // Try to parse the date
-    const date = new Date(value);
-    
-    // Check if valid date
-    if (isNaN(date.getTime())) {
-        return null;
-    }
-    
-    return date;
-}
-
-// ============================================
-// RECONCILIATION LOGIC
-// ============================================
-
-/**
- * Main reconciliation function
- * Matches AR records with Bank records based on:
- * 1. Customer Name
- * 2. Amount (within tolerance)
- * 3. Date proximity (within 7 days)
- */
-function performReconciliation() {
-    matchedRecords = [];
-    unmatchedAR = [...arData];
-    unmatchedBank = [...bankData];
-    
-    // Amount tolerance for matching (e.g., 0.01 = 1 cent difference allowed)
-    const amountTolerance = 0.01;
-    
-    // Date tolerance in days
-    const dateTolerance = 7;
-    
-    // Try to match each AR record with Bank records
-    for (let i = 0; i < arData.length; i++) {
-        const arRecord = arData[i];
-        
-        // Look for matching bank record
-        for (let j = 0; j < bankData.length; j++) {
-            const bankRecord = bankData[j];
-            
-            // Skip if already matched
-            if (bankRecord.matched) continue;
-            
-            // Check if amounts match (within tolerance)
-            const amountMatch = Math.abs(
-                parseAmount(arRecord.amount) - parseAmount(bankRecord.amount)
-            ) <= amountTolerance;
-            
-            // Check if customer names match (case-insensitive)
-            const customerMatch = arRecord.customername && bankRecord.customername &&
-                arRecord.customername.toLowerCase().trim() === 
-                bankRecord.customername.toLowerCase().trim();
-            
-            // Check if dates are close (within tolerance)
-            let dateMatch = true;
-            if (arRecord.date && bankRecord.date) {
-                const arDate = parseDate(arRecord.date);
-                const bankDate = parseDate(bankRecord.date);
-                
-                if (arDate && bankDate) {
-                    const daysDiff = Math.abs(
-                        (arDate - bankDate) / (1000 * 60 * 60 * 24)
-                    );
-                    dateMatch = daysDiff <= dateTolerance;
-                }
-            }
-            
-            // If all criteria match, create a matched record
-            if (amountMatch && customerMatch && dateMatch) {
-                matchedRecords.push({
-                    arRecord: arRecord,
-                    bankRecord: bankRecord,
-                    matchDate: new Date().toLocaleDateString()
-                });
-                
-                // Mark as matched
-                bankRecord.matched = true;
-                unmatchedAR.splice(i, 1);
-                i--; // Adjust index after removal
-                break; // Move to next AR record
-            }
-        }
-    }
-    
-    // Remove matched bank records from unmatched list
-    unmatchedBank = unmatchedBank.filter(record => !record.matched);
-}
-
-// ============================================
-// UI UPDATE FUNCTIONS
-// ============================================
-
-/**
- * Updates the statistics cards with reconciliation results
- */
-function updateStats() {
-    document.getElementById('totalAR').textContent = arData.length;
-    document.getElementById('totalBank').textContent = bankData.length;
-    document.getElementById('matchedCount').textContent = matchedRecords.length;
-    document.getElementById('unmatchedCount').textContent = 
-        unmatchedAR.length + unmatchedBank.length;
-}
-
-/**
- * Displays matched records in a table
- */
-function displayMatchedRecords() {
-    const tbody = document.getElementById('matchedTableBody');
-    tbody.innerHTML = '';
-    
-    matchedRecords.forEach((match, index) => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${match.arRecord.customername || 'N/A'}</td>
-            <td>$${parseAmount(match.arRecord.amount).toFixed(2)}</td>
-            <td>${match.arRecord.invoicenumber || 'N/A'}</td>
-            <td>${match.bankRecord.reference || 'N/A'}</td>
-            <td>${match.arRecord.date || 'N/A'}</td>
-            <td><span class="status-badge status-matched">Matched</span></td>
-        `;
-    });
-}
-
-/**
- * Displays unmatched AR records in a table
- */
-function displayUnmatchedAR() {
-    const tbody = document.getElementById('unmatchedARBody');
-    tbody.innerHTML = '';
-    
-    unmatchedAR.forEach((record, index) => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${record.customername || 'N/A'}</td>
-            <td>$${parseAmount(record.amount).toFixed(2)}</td>
-            <td>${record.invoicenumber || 'N/A'}</td>
-            <td>${record.date || 'N/A'}</td>
-            <td>${calculateAging(record.date)}</td>
-            <td><span class="status-badge status-unmatched">Unmatched</span></td>
-        `;
-    });
-}
-
-/**
- * Displays unmatched Bank records in a table
- */
-function displayUnmatchedBank() {
-    const tbody = document.getElementById('unmatchedBankBody');
-    tbody.innerHTML = '';
-    
-    unmatchedBank.forEach((record, index) => {
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${record.customername || 'N/A'}</td>
-            <td>$${parseAmount(record.amount).toFixed(2)}</td>
-            <td>${record.reference || 'N/A'}</td>
-            <td>${record.date || 'N/A'}</td>
-            <td><span class="status-badge status-unmatched">Unmatched</span></td>
-        `;
-    });
-}
-
-/**
- * Calculates aging (days overdue) for a given date
- */
-function calculateAging(dateString) {
-    if (!dateString) return 'N/A';
-    
-    const date = parseDate(dateString);
-    if (!date) return 'N/A';
-    
-    const today = new Date();
-    const daysDiff = Math.floor((today - date) / (1000 * 60 * 60 * 24));
-    
-    if (daysDiff < 0) return '0 days';
-    if (daysDiff === 0) return 'Today';
-    if (daysDiff === 1) return '1 day';
-    
-    return `${daysDiff} days`;
-}
-
-// ============================================
-// EXPORT FUNCTIONALITY
-// ============================================
-
-/**
- * Exports reconciliation results to Excel file
- */
-function exportToExcel() {
-    // Create a new workbook
-    const wb = XLSX.utils.book_new();
-    
-    // Create Matched Records sheet
-    const matchedSheet = XLSX.utils.json_to_sheet(
-        matchedRecords.map(m => ({
-            'Customer Name': m.arRecord.customername,
-            'Amount': parseAmount(m.arRecord.amount),
-            'AR Invoice': m.arRecord.invoicenumber,
-            'Bank Reference': m.bankRecord.reference,
-            'AR Date': m.arRecord.date,
-            'Bank Date': m.bankRecord.date,
-            'Status': 'Matched'
-        }))
-    );
-    XLSX.utils.book_append_sheet(wb, matchedSheet, 'Matched Records');
-    
-    // Create Unmatched AR sheet
-    const unmatchedARSheet = XLSX.utils.json_to_sheet(
-        unmatchedAR.map(r => ({
-            'Customer Name': r.customername,
-            'Amount': parseAmount(r.amount),
-            'Invoice Number': r.invoicenumber,
-            'Date': r.date,
-            'Aging': calculateAging(r.date),
-            'Status': 'Unmatched'
-        }))
-    );
-    XLSX.utils.book_append_sheet(wb, unmatchedARSheet, 'Unmatched AR');
-    
-    // Create Unmatched Bank sheet
-    const unmatchedBankSheet = XLSX.utils.json_to_sheet(
-        unmatchedBank.map(r => ({
-            'Customer Name': r.customername,
-            'Amount': parseAmount(r.amount),
-            'Reference': r.reference,
-            'Date': r.date,
-            'Status': 'Unmatched'
-        }))
-    );
-    XLSX.utils.book_append_sheet(wb, unmatchedBankSheet, 'Unmatched Bank');
-    
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `Reconciliation_Report_${timestamp}.xlsx`;
-    
-    // Download the file
-    XLSX.writeFile(wb, filename);
-}
-
-// ============================================
-// EVENT HANDLERS
-// ============================================
-
-/**
- * Main function that runs when "Process Reconciliation" button is clicked
- */
-async function processReconciliation() {
-    // Get file inputs
-    const arFile = document.getElementById('arFile').files[0];
-    const bankFile = document.getElementById('bankFile').files[0];
-    
-    // Validate that both files are selected
-    if (!arFile || !bankFile) {
-        alert('Please select both AR and Bank files');
-        return;
-    }
-    
-    // Show loading spinner
-    document.getElementById('loading').classList.add('active');
-    document.getElementById('processBtn').disabled = true;
-    
-    try {
-        // Read both Excel files
-        const arRawData = await readExcelFile(arFile);
-        const bankRawData = await readExcelFile(bankFile);
-        
-        // Normalize column headers
-        arData = normalizeHeaders(arRawData);
-        bankData = normalizeHeaders(bankRawData);
-        
-        // Perform reconciliation
-        performReconciliation();
-        
-        // Update UI with results
-        updateStats();
-        displayMatchedRecords();
-        displayUnmatchedAR();
-        displayUnmatchedBank();
-        
-        // Show results section
-        document.getElementById('resultsSection').classList.add('active');
-        
-        // Scroll to results
-        document.getElementById('resultsSection').scrollIntoView({ 
-            behavior: 'smooth' 
-        });
-        
-    } catch (error) {
-        console.error('Error processing files:', error);
-        alert('Error processing files. Please check the file format and try again.');
-    } finally {
-        // Hide loading spinner
-        document.getElementById('loading').classList.remove('active');
-        document.getElementById('processBtn').disabled = false;
-    }
-}
-
-// ============================================
-// INITIALIZATION
-// ============================================
-
-// Wait for page to load before attaching event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Attach click handler to Process button
-    document.getElementById('processBtn').addEventListener('click', processReconciliation);
-    
-    // Attach click handler to Export button
-    document.getElementById('exportBtn').addEventListener('click', exportToExcel);
-    
-    console.log('O2C Reconciliation Platform initialized successfully');
-});
+init();
