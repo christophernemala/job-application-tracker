@@ -1,0 +1,9 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Job agent runtime/secrets
+job_agent/.env
+job_agent/job_agent.db
+job_agent/*.png
+job_agent/*.pkl
