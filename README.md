@@ -1,328 +1,330 @@
 # 🎯 AI Job Application Tracker
 
-**Track your job applications, generate AI-powered cover letters, and manage your job search efficiently!**
-
-## 🌐 Live Website
-
-**Access the platform:** https://christophernemala.github.io/o2c-reconciliation-platform/
+**Complete job search automation system with web tracking, Selenium automation, and AI-powered cover letters!**
 
 ---
 
-## ✨ What Does This Do?
+## 🌟 What Is This?
 
-This is a **Job Application Tracking System** that helps you:
+This project has **TWO parts**:
 
-- ✅ **Track all job applications** in one place
-- ✅ **Monitor application status** (Applied, Interview, Offer, Rejected)
-- ✅ **Generate AI cover letters** tailored to job descriptions
-- ✅ **Create resume summaries** based on your profile
-- ✅ **View dashboard statistics** (total apps, offers, response rate)
-- ✅ **Export/Import data** for backup and portability
-- ✅ **Filter applications** by status
-- ✅ **Visualize pipeline** with progress bars
+### **Part 1: Web-Based Tracker** 🌐
+- Simple browser-based job application tracker
+- No installation needed
+- Manual job tracking
+- **Live at:** https://christophernemala.github.io/job-application-tracker/
 
----
-
-## 🚀 Quick Start (3 Steps)
-
-### Step 1: Set Up Your Profile
-
-1. Go to https://christophernemala.github.io/o2c-reconciliation-platform/
-2. Click the **"AI Studio"** tab
-3. Fill in your profile:
-   - Full Name
-   - Current Role
-   - Key Skills (comma-separated)
-   - Key Achievements (comma-separated)
-4. Click **"Save Profile"**
-
-### Step 2: Add Job Applications
-
-1. Click the **"Applications DB"** tab
-2. Fill in the form:
-   - Date Applied
-   - Platform (LinkedIn, Naukri Gulf, etc.)
-   - Company Name
-   - Job Role
-   - Status (Applied, Interview, etc.)
-   - Notes (optional)
-3. Click **"Add Application"**
-
-### Step 3: Generate AI Content
-
-1. Go to **"AI Studio"** tab
-2. Paste a job description
-3. Click **"Generate Cover Letter"** or **"Generate Tailored Resume"**
-4. Copy the generated text
+### **Part 2: Automated Job Agent** 🤖
+- **Uses Selenium web drivers** to automate job applications
+- Logs into Naukri Gulf automatically
+- Applies to jobs on your behalf
+- AI-powered cover letter generation
+- SQLite database for tracking
+- Flask dashboard
+- **Requires setup** (see below)
 
 ---
 
-## 📊 Features
+## 🚀 Quick Links
 
-### 1. Dashboard
-- **Total Applications** - Count of all applications
-- **Offers Received** - Number of job offers
-- **Response Rate** - Percentage of applications that led to interviews
-- **Pipeline Visualization** - See applications at each stage
-- **Recent Applications** - Quick view of latest 5 applications
-
-### 2. Applications Database
-- **Add Applications** - Log new job applications
-- **Filter by Status** - View Applied, Interview, Offer, or Rejected
-- **Delete Applications** - Remove entries
-- **Export Data** - Download backup as JSON
-- **Import Data** - Restore from backup
-- **Clear All Data** - Reset everything (with confirmation)
-
-### 3. AI Studio
-- **Profile Management** - Save your info for AI generation
-- **Cover Letter Generator** - AI creates personalized cover letters
-- **Resume Summary Generator** - AI tailors your resume summary
-- **Copy to Clipboard** - Easy copying of generated content
+| What | Link |
+|------|------|
+| **Live Web Tracker** | https://christophernemala.github.io/job-application-tracker/ |
+| **Setup Guide (Automation)** | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
+| **GitHub Repository** | https://github.com/christophernemala/job-application-tracker |
 
 ---
 
-## 💾 Data Storage
+## 📦 What's Included
 
-### Where is Your Data Stored?
+### **Web Tracker** (`index.html`, `app.js`, `styles.css`)
+- ✅ Track job applications manually
+- ✅ Dashboard with statistics
+- ✅ AI cover letter generator (basic)
+- ✅ Export/import data
+- ✅ Works in any browser
+- ✅ No installation needed
 
-Your data is stored in your **browser's localStorage**:
-- ✅ Stays on your computer only
-- ✅ Not sent to any server
-- ✅ Private and secure
-- ✅ Works offline after first load
-
-### Backup Your Data
-
-**Export Data:**
-1. Go to "Applications DB" tab
-2. Click **"📥 Export Data"**
-3. Save the JSON file somewhere safe
-
-**Import Data:**
-1. Click **"📤 Import Data"**
-2. Select your backup JSON file
-3. All data restored!
+### **Automation System** (`job_agent/` folder)
+- ✅ **Selenium web automation** - Controls browser automatically
+- ✅ **Naukri Gulf integration** - Logs in and applies to jobs
+- ✅ **SQLite database** - Stores all applications
+- ✅ **OpenAI integration** - Generates personalized cover letters
+- ✅ **Flask dashboard** - View applications in browser
+- ✅ **Verification system** - Confirms applications succeeded
+- ⚠️ **Requires setup** - See [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 ---
 
-## 🔧 Technical Details
+## 🎯 Which One Should You Use?
 
-### Technologies Used
-- **HTML5** - Structure
-- **CSS3** - Styling with modern design
-- **JavaScript (ES6+)** - Logic and functionality
-- **LocalStorage API** - Data persistence
-- **GitHub Pages** - Free hosting
+### **Use Web Tracker If:**
+- ✅ You want something simple
+- ✅ You apply to jobs manually
+- ✅ You don't want to install anything
+- ✅ You just need tracking
 
-### Browser Support
-- ✅ Chrome (Recommended)
-- ✅ Firefox
-- ✅ Edge
-- ✅ Safari
-
-### No Backend Required
-- ❌ No server needed
-- ❌ No database needed
-- ❌ No web drivers (Selenium, etc.)
-- ❌ No complex setup
-- ✅ Just open and use!
+### **Use Automation System If:**
+- ✅ You want to automate job applications
+- ✅ You're comfortable with Python
+- ✅ You have Naukri Gulf account
+- ✅ You want AI cover letters
+- ✅ You understand the risks (see warnings below)
 
 ---
 
-## 📁 Project Structure
+## 🚀 Getting Started
 
-```
-o2c-reconciliation-platform/
-│
-├── index.html              # Main webpage structure
-├── styles.css              # Styling and design
-├── app.js                  # Application logic
-│
-├── README.md               # This file
-├── BEGINNERS_GUIDE.md      # Learning guide (outdated)
-├── SAMPLE_DATA_GUIDE.md    # Sample data guide (outdated)
-└── TROUBLESHOOTING.md      # Troubleshooting guide (outdated)
-```
+### **Option 1: Web Tracker (Easy)**
 
-**Note:** The BEGINNERS_GUIDE, SAMPLE_DATA_GUIDE, and TROUBLESHOOTING files are from an older version (invoice reconciliation) and are now outdated.
+Just visit: https://christophernemala.github.io/job-application-tracker/
 
----
+No setup needed!
 
-## 🎯 How to Use
+### **Option 2: Automation System (Advanced)**
 
-### Adding Your First Application
+**Follow the complete setup guide:** [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
-1. **Go to Applications DB tab**
-2. **Fill in the form:**
-   ```
-   Date Applied: 2026-02-10
-   Platform: LinkedIn
-   Company: Google
-   Role: Software Engineer
-   Status: Applied
-   Notes: Applied through referral
-   ```
-3. **Click "Add Application"**
-4. **See it appear in the table below!**
-
-### Generating a Cover Letter
-
-1. **Set up your profile first** (AI Studio → Profile)
-2. **Copy a job description** from LinkedIn/Indeed
-3. **Paste it in "Job Description" field**
-4. **Click "Generate Cover Letter"**
-5. **Copy the generated letter**
-6. **Customize and send!**
-
----
-
-## 🔄 How to Update/Modify
-
-### Option 1: Edit on GitHub (Easy)
-
-1. Go to https://github.com/christophernemala/o2c-reconciliation-platform
-2. Click on any file (e.g., `index.html`)
-3. Click the pencil icon (✏️ Edit)
-4. Make your changes
-5. Scroll down, add commit message
-6. Click "Commit changes"
-7. Wait 1-2 minutes → Website updates automatically!
-
-### Option 2: Edit Locally (Advanced)
+**Quick version:**
 
 ```bash
-# Clone the repository
-git clone https://github.com/christophernemala/o2c-reconciliation-platform.git
+# 1. Clone repository
+git clone https://github.com/christophernemala/job-application-tracker.git
+cd job-application-tracker/job_agent
 
-# Make changes to files
-# Then push back to GitHub
+# 2. Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Mac/Linux
+.venv\Scripts\activate     # Windows
 
-git add .
-git commit -m "Your changes"
-git push origin main
+# 3. Install packages
+pip install -r requirements.txt
+
+# 4. Configure credentials
+cp .env.example .env
+# Edit .env with your Naukri Gulf credentials
+
+# 5. Run dashboard
+python app.py
+
+# 6. Open browser
+# Go to: http://127.0.0.1:5001
+```
+
+**Full instructions:** [SETUP_GUIDE.md](SETUP_GUIDE.md)
+
+---
+
+## 🛠️ System Requirements (Automation Only)
+
+- **Python 3.8+** - Programming language
+- **Google Chrome** - Browser (for Selenium)
+- **Naukri Gulf Account** - Your login credentials
+- **OpenAI API Key** (Optional) - For AI cover letters
+
+---
+
+## ⚠️ Important Warnings (Automation)
+
+### **Legal & Ethical Considerations:**
+
+❌ **Terms of Service** - Naukri Gulf may prohibit automated applications  
+❌ **Account Ban Risk** - You could get banned for using automation  
+❌ **Quality Issues** - Automated applications are generic and less effective  
+❌ **Spam Concerns** - Mass applications can damage your reputation  
+
+### **Recommendations:**
+
+✅ **Use for job discovery** - Let it find relevant jobs  
+✅ **Review before applying** - Manually check each job  
+✅ **Customize applications** - Don't send generic applications  
+✅ **Respect rate limits** - Apply to 5-10 jobs/day max  
+✅ **Test thoroughly** - Start with manual testing  
+
+**We are not responsible for any account bans or legal issues. Use at your own risk.**
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [SETUP_GUIDE.md](SETUP_GUIDE.md) | Complete setup instructions for automation |
+| [job_agent/README.md](job_agent/README.md) | Technical details of automation system |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common issues and solutions |
+
+---
+
+## 🎯 Features Breakdown
+
+### **Web Tracker Features:**
+
+| Feature | Description |
+|---------|-------------|
+| Dashboard | View stats, pipeline, recent applications |
+| Add Applications | Log job applications manually |
+| Filter & Search | Filter by status (Applied, Interview, etc.) |
+| AI Generator | Basic cover letter generation |
+| Export/Import | Backup and restore data |
+| LocalStorage | Data stays in your browser |
+
+### **Automation System Features:**
+
+| Feature | Description |
+|---------|-------------|
+| Selenium Automation | Controls Chrome browser automatically |
+| Naukri Gulf Login | Logs in with your credentials |
+| Job Application | Clicks "Apply" button automatically |
+| Verification | Confirms application succeeded |
+| SQLite Database | Stores all jobs and applications |
+| OpenAI Integration | Generates personalized cover letters |
+| Flask Dashboard | Web interface to view applications |
+| Screenshot Capture | Saves screenshots on errors |
+| Session Management | Persists login cookies |
+
+---
+
+## 🔧 Technology Stack
+
+### **Web Tracker:**
+- HTML5
+- CSS3
+- JavaScript (ES6+)
+- LocalStorage API
+- GitHub Pages
+
+### **Automation System:**
+- **Python 3.8+**
+- **Selenium** - Web automation (the web driver!)
+- **Flask** - Web framework
+- **SQLite** - Database
+- **OpenAI API** - AI cover letters
+- **webdriver-manager** - Auto-downloads ChromeDriver
+
+---
+
+## 📊 Project Structure
+
+```
+job-application-tracker/
+│
+├── index.html              # Web tracker (main page)
+├── app.js                  # Web tracker logic
+├── styles.css              # Web tracker styling
+│
+├── job_agent/              # Automation system
+│   ├── automation.py       # Selenium web driver code
+│   ├── config.py          # User profile & credentials
+│   ├── database.py        # SQLite database
+│   ├── ai_services.py     # OpenAI integration
+│   ├── app.py             # Flask dashboard
+│   ├── requirements.txt   # Python packages
+│   ├── .env.example       # Credentials template
+│   ├── templates/         # HTML templates
+│   └── static/            # CSS/JS files
+│
+├── README.md              # This file
+├── SETUP_GUIDE.md         # Complete setup instructions
+└── TROUBLESHOOTING.md     # Common issues
 ```
 
 ---
 
-## 🎨 Customization Ideas
+## 🎓 Understanding Web Drivers
 
-### Change Colors
-Edit `styles.css`:
-```css
-:root {
-  --bg: #070b1d;        /* Background color */
-  --accent: #4f7cff;    /* Accent color (buttons, etc.) */
-  --success: #33d69f;   /* Success color */
-  --danger: #ff6b6b;    /* Danger color */
-}
+### **What is a Web Driver?**
+
+A web driver (like Selenium) is a tool that **controls your browser automatically**:
+
+```python
+# Example: Automated login
+driver.get("https://naukrigulf.com/login")
+driver.find_element(By.ID, "email").send_keys("your@email.com")
+driver.find_element(By.ID, "password").send_keys("password")
+driver.find_element(By.ID, "submit").click()
 ```
 
-### Add New Platforms
-Edit `index.html`, find the platform dropdown:
-```html
-<select id="platform" required>
-    <option value="LinkedIn">LinkedIn</option>
-    <option value="Indeed">Indeed</option>  <!-- Add this -->
-    <option value="Glassdoor">Glassdoor</option>  <!-- Add this -->
-</select>
+### **How It Works:**
+
+```
+Your Python Code → Selenium → ChromeDriver → Chrome Browser
 ```
 
-### Add New Status Options
-Edit `index.html`, find the status dropdown:
-```html
-<select id="status" required>
-    <option value="Applied">Applied</option>
-    <option value="Phone Screen">Phone Screen</option>  <!-- Add this -->
-    <option value="Technical Interview">Technical Interview</option>  <!-- Add this -->
-</select>
+### **What You Need:**
+
+1. **Selenium** - Python library (installed via pip)
+2. **ChromeDriver** - Bridge to Chrome (auto-downloaded by webdriver-manager)
+3. **Chrome Browser** - Must be installed on your computer
+
+**The automation system handles all of this automatically!**
+
+---
+
+## 🚀 Usage Examples
+
+### **Web Tracker:**
+
+1. Visit: https://christophernemala.github.io/job-application-tracker/
+2. Click "Applications DB" tab
+3. Fill in job details
+4. Click "Add Application"
+5. View in dashboard
+
+### **Automation System:**
+
+```python
+# Example: Login and apply to a job
+from job_agent.automation import authenticate_naukri_gulf_with_config
+
+# Login (uses web driver!)
+driver = authenticate_naukri_gulf_with_config(headless=False)
+
+# Navigate to job
+driver.get("https://www.naukrigulf.com/job-listing-...")
+
+# Click apply button
+driver.find_element(By.CLASS_NAME, "apply-button").click()
+
+# Close browser
+driver.quit()
 ```
+
+**See [SETUP_GUIDE.md](SETUP_GUIDE.md) for complete examples.**
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Website Won't Load?
-- Check URL: https://christophernemala.github.io/o2c-reconciliation-platform/
-- Clear browser cache (Ctrl+Shift+Delete)
-- Try different browser
+### **Web Tracker Issues:**
 
-### Data Disappeared?
-- Check if you're using the same browser
-- LocalStorage is browser-specific
-- Import your backup JSON file
+| Problem | Solution |
+|---------|----------|
+| Website won't load | Clear browser cache, try different browser |
+| Data disappeared | Check same browser, import backup |
+| Buttons not working | Enable JavaScript, check console (F12) |
 
-### Buttons Not Working?
-- Check browser console (F12)
-- Look for JavaScript errors
-- Make sure JavaScript is enabled
+### **Automation Issues:**
 
-### AI Generator Not Working?
-- Make sure you saved your profile first
-- Enter a job description
-- Check that all required fields are filled
+| Problem | Solution |
+|---------|----------|
+| ChromeDriver not found | Run `pip install webdriver-manager` |
+| Login failed | Check `.env` credentials, try manual login |
+| Module not found | Activate virtual environment, reinstall packages |
 
----
-
-## 🚀 Deployment Status
-
-✅ **Platform is LIVE and WORKING**
-
-- Main Platform: https://christophernemala.github.io/o2c-reconciliation-platform/
-- GitHub Repository: https://github.com/christophernemala/o2c-reconciliation-platform
-- GitHub Pages: Enabled
-- All files deployed successfully
-- Auto-deploys on push to main branch
-
----
-
-## 📝 FAQ
-
-### Q: Is this really free?
-**A:** Yes! GitHub Pages hosting is completely free.
-
-### Q: Can I use this for other tracking purposes?
-**A:** Yes! The code structure works for any tracking app (books, expenses, workouts, etc.). Just modify the data fields.
-
-### Q: Where is my data stored?
-**A:** In your browser's localStorage. It never leaves your computer.
-
-### Q: Can I access my data from another computer?
-**A:** Export your data as JSON, then import it on the other computer.
-
-### Q: Do I need web drivers or Selenium?
-**A:** No! This is a simple web app. No complex setup needed.
-
-### Q: Can I customize the AI generation?
-**A:** Yes! Edit the `generateCoverLetter()` and `generateResumeSummary()` functions in `app.js`.
-
-### Q: How do I backup my data?
-**A:** Click "📥 Export Data" button in the Applications DB tab.
-
----
-
-## 🎓 Learning Resources
-
-Want to learn how this works?
-
-### Beginner-Friendly:
-- [FreeCodeCamp](https://www.freecodecamp.org/) - Free coding courses
-- [MDN Web Docs](https://developer.mozilla.org/) - HTML/CSS/JavaScript reference
-- [JavaScript.info](https://javascript.info/) - Modern JavaScript tutorial
-
-### Video Tutorials:
-- "HTML & CSS for Beginners" on YouTube
-- "JavaScript Full Course" by freeCodeCamp
-- "LocalStorage Tutorial" by Web Dev Simplified
+**Full troubleshooting:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ---
 
 ## 📞 Support
 
-### Contact
+### **Documentation:**
+- [Setup Guide](SETUP_GUIDE.md) - Complete setup instructions
+- [Troubleshooting](TROUBLESHOOTING.md) - Common issues
+
+### **Contact:**
 - **Email:** christophernemala@gmail.com
 - **GitHub Issues:** Report bugs or request features
-- **GitHub Repo:** https://github.com/christophernemala/o2c-reconciliation-platform
+- **GitHub Repo:** https://github.com/christophernemala/job-application-tracker
 
 ---
 
@@ -330,28 +332,37 @@ Want to learn how this works?
 
 This project is open source. Feel free to use, modify, and share!
 
+**Disclaimer:** Use the automation features responsibly and at your own risk. We are not responsible for any account bans or legal issues resulting from automated job applications.
+
 ---
 
 ## 🎉 Credits
 
-Built by Christopher Nemala with assistance from AI (ChatGPT/Codex).
+Built by **Christopher Nemala** with assistance from AI (ChatGPT/Codex).
 
-**Note:** This project was initially started as an invoice reconciliation tool but was repurposed as a job application tracker. Some old documentation files may still reference the original purpose.
+**Technologies:**
+- Web Tracker: HTML/CSS/JavaScript
+- Automation: Python + Selenium + Flask + OpenAI
 
 ---
 
 ## 🔮 Future Enhancements
 
 Ideas for future versions:
-- [ ] Email reminders for follow-ups
-- [ ] Integration with LinkedIn API
-- [ ] Advanced analytics and charts
-- [ ] Mobile app version
-- [ ] Cloud sync option
+
+- [ ] LinkedIn automation support
+- [ ] Email notifications for new jobs
+- [ ] Advanced job matching algorithm
+- [ ] Resume parsing and optimization
 - [ ] Interview preparation notes
-- [ ] Salary tracking
-- [ ] Company research notes
+- [ ] Salary negotiation tracker
+- [ ] Company research integration
+- [ ] Mobile app version
 
 ---
 
-**Happy Job Hunting! 🚀**
+**Choose your path:**
+- 🌐 **Simple tracking?** Use the web tracker
+- 🤖 **Full automation?** Follow the [SETUP_GUIDE.md](SETUP_GUIDE.md)
+
+**Happy job hunting! 🚀**
