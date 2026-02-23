@@ -22,6 +22,7 @@ def _load_local_env() -> None:
         # Strip surrounding quotes (single or double) if present
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
+        # Use setdefault so .env values only apply if the variable is not already set
         os.environ.setdefault(key.strip(), value)
 
 

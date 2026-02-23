@@ -41,6 +41,13 @@ def setup_selenium_driver(headless: bool = True) -> webdriver.Chrome:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1440,1080")
     
+    # Fix for ERR_HTTP2_PROTOCOL_ERROR and bot detection
+    options.add_argument("--disable-http2")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+    
     # Use webdriver-manager if available, otherwise use system ChromeDriver
     if WEBDRIVER_MANAGER_AVAILABLE:
         service = Service(ChromeDriverManager().install())
@@ -53,22 +60,56 @@ def setup_selenium_driver(headless: bool = True) -> webdriver.Chrome:
 def authenticate_naukri_gulf(email: str, password: str, headless: bool = True) -> webdriver.Chrome:
     """Login to Naukri Gulf and persist session cookies."""
     driver = setup_selenium_driver(headless=headless)
-    driver.get("https://www.naukrigulf.com/nlogin/login")
+    driver.get("https://www.naukrigulf.com/jobseeker/login")
 
     try:
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "usernameField")))
-        driver.find_element(By.ID, "usernameField").send_keys(email)
-        driver.find_element(By.ID, "passwordField").send_keys(password)
-        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+        email_field = driver.find_element(By.ID, "loginPageLoginEmail")
+        email_field.clear()
+        email_field.send_keys(email)
+        
+        pass_field = driver.find_element(By.ID, "loginPassword")
+        pass_field.clear()
+        pass_field.send_keys(password)
+        
+        print(f"DEBUG: Fields filled (Email: {email}, Pwd length: {len(password)})")
+        
+        # Try JavaScript click first
+        button = driver.find_element(By.ID, "loginPageLoginSubmit")
+        driver.execute_script("arguments[0].click();", button)
+        
+        # Fallback: Submit the form directly if no redirection after 3s
+        import time
+        time.sleep(3)
+        if "/jobseeker/login" in driver.current_url:
+            print("DEBUG: Redirection didn't happen yet. Attempting form.submit()...")
+            driver.execute_script("document.getElementById('loginPageLoginForm').submit();")
 
-        WebDriverWait(driver, 20).until(EC.url_contains("/mnj/userProfile"))
+        print("DEBUG: Login button clicked. Waiting for redirection...")
+        
+        # Give it a few seconds to process
+        import time
+        time.sleep(5)
+        print(f"DEBUG: URL after 5s: {driver.current_url}")
+
+        WebDriverWait(driver, 25).until(EC.url_contains("/mnj/userProfile"))
         with SESSION_FILE.open("wb") as handle:
             pickle.dump(driver.get_cookies(), handle)
         return driver
-    except TimeoutException as exc:
+    except Exception as exc:
+        print(f"DEBUG: Authentication failed. Current URL: {driver.current_url}")
+        # Check for error labels in the DOM
+        try:
+            err_msg = driver.find_element(By.ID, "loginPageloginErr").text
+            if err_msg:
+                print(f"DEBUG: On-page error message: {err_msg}")
+        except:
+            pass
+
         driver.save_screenshot(str(Path(__file__).resolve().parent / "auth_failure.png"))
+        with open(Path(__file__).resolve().parent / "auth_failure_source.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
         driver.quit()
-        raise RuntimeError("Naukri Gulf authentication failed or timed out") from exc
+        raise RuntimeError(f"Naukri Gulf authentication failed: {exc}") from exc
 
 
 
