@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Job agent runtime/secrets
+job_agent/.env
+job_agent/job_agent.db
+job_agent/*.png
+job_agent/*.pkl
+job_agent/naukri_session.pkl
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/

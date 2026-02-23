@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Application Agent</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 AI Job Application Agent</h1>
+            <p>Automate applications for Naukri Gulf and LinkedIn with tracking, resume tailoring, and cover letter generation</p>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="applications">Applications DB</button>
+            <button class="tab-btn" data-tab="ai-studio">AI Studio</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <section id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Applications</h3>
+                    <p id="totalApps" class="stat-number">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Current Stage</h3>
+                    <p id="currentStage" class="stat-number">N/A</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Offers Received</h3>
+                    <p id="offersReceived" class="stat-number">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Response Rate</h3>
+                    <p id="responseRate" class="stat-number">0%</p>
+                </div>
+            </div>
+
+            <div class="pipeline-section">
+                <h3>Pipeline Snapshot</h3>
+                <div id="pipelineBars" class="pipeline"></div>
+            </div>
+
+            <div class="recent-section">
+                <h3>Recent Applications</h3>
+                <table class="responsive-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Platform</th>
+                            <th>Company</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Applications DB Tab -->
+        <section id="applications" class="tab-content">
+            <div class="form-card">
+                <h3>📝 Log Application</h3>
+                <form id="applicationForm">
+                    <input type="date" id="appliedOn" required>
+                    <select id="platform" required>
+                        <option value="">Select Platform</option>
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Naukri Gulf">Naukri Gulf</option>
+                        <option value="Bayt">Bayt</option>
+                        <option value="Company Website">Company Website</option>
+                    </select>
+                    <input type="text" id="company" placeholder="Company Name" required>
+                    <input type="text" id="role" placeholder="Job Role" required>
+                    <select id="status" required>
+                        <option value="">Application Status</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Screening">Screening</option>
+                        <option value="Interview">Interview Scheduled</option>
+                        <option value="Offer">Offer Received</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                    <textarea id="notes" placeholder="Notes (optional)" rows="3"></textarea>
+                    <button type="submit">Add Application</button>
+                </form>
+            </div>
+
+            <!-- Data Management Buttons -->
+            <div class="data-management" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="exportDataBtn" class="btn secondary" style="background: #2a3d75;">📥 Export Data</button>
+                <button id="importDataBtn" class="btn secondary" style="background: #2a3d75;">📤 Import Data</button>
+                <button id="clearDataBtn" class="btn secondary" style="background: #582535; color: #ffc4c4;">🗑️ Clear All Data</button>
+            </div>
+
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="Applied">Applied</button>
+                <button class="filter-btn" data-filter="Interview">Interview</button>
+                <button class="filter-btn" data-filter="Offer">Offer</button>
+                <button class="filter-btn" data-filter="Rejected">Rejected</button>
+            </div>
+
+            <table class="responsive-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Platform</th>
+                        <th>Company</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="applicationTableBody">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- AI Studio Tab -->
+        <section id="ai-studio" class="tab-content">
+            <div class="form-card">
+                <h3>👤 Profile</h3>
+                <form id="profileForm">
+                    <input type="text" id="name" placeholder="Full Name" required>
+                    <input type="text" id="currentRole" placeholder="Current Role" required>
+                    <textarea id="skills" placeholder="Key Skills (comma-separated)" rows="2"></textarea>
+                    <textarea id="achievements" placeholder="Key Achievements (comma-separated)" rows="3"></textarea>
+                    <button type="submit">Save Profile</button>
+                </form>
+            </div>
+
+            <div class="ai-panel">
+                <h3>🤖 AI Generator</h3>
+                <textarea id="jobDescription" placeholder="Paste job description here..." rows="5"></textarea>
+                <textarea id="companyValues" placeholder="Company values/mission (optional)..." rows="3"></textarea>
+                
+                <div class="button-group">
+                    <button id="generateCoverBtn" class="ai-btn">Generate Cover Letter</button>
+                    <button id="generateResumeBtn" class="ai-btn">Generate Tailored Resume</button>
+                </div>
+
+                <div id="generatedOutput" class="output-panel" style="display:none;">
+                    <h4>Generated Output:</h4>
+                    <div id="outputText"></div>
+                    <button id="copyOutputBtn">Copy to Clipboard</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: job-application-tracker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn job_agent.app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
+      - key: NAUKRI_GULF_EMAIL
+        sync: false
+      - key: NAUKRI_GULF_PASSWORD
+        sync: false
+      - key: JOB_AGENT_NAME
+        value: "Christopher Nemala"
+      - key: JOB_AGENT_EMAIL
+        value: "christophernemala@gmail.com"

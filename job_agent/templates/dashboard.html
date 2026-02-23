@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Job Agent Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <main>
+    <h1>AI Job Agent Dashboard</h1>
+    <section class="grid">
+      {% for app in applications %}
+      <article class="application-card" data-app-id="{{ app.id }}">
+        <h3>{{ app.job_title }}</h3>
+        <p>{{ app.company }}</p>
+        <small>{{ app.platform }} · Score: {{ app.match_score or 'N/A' }}%</small>
+      </article>
+      {% else %}
+      <p>No applications yet. Use POST /api/applications to seed data.</p>
+      {% endfor %}
+    </section>
+  </main>
+
+  <script>
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function showApplicationDetails(appId) {
+      fetch(`/api/application/${appId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const modal = document.createElement('div');
+          modal.className = 'modal';
+          modal.innerHTML = `
+            <div class="modal-content">
+              <span class="close">&times;</span>
+              <h2>${escapeHtml(data.job_title)} - ${escapeHtml(data.company)}</h2>
+              <div class="details-section">
+                <h3>📄 Cover Letter</h3>
+                <div class="cover-letter-text">${escapeHtml(data.cover_letter) || 'No cover letter available'}</div>
+              </div>
+              <div class="details-section">
+                <h3>📊 Application Info</h3>
+                <p><strong>Platform:</strong> ${escapeHtml(data.platform)}</p>
+                <p><strong>Applied:</strong> ${escapeHtml(new Date(data.applied_date).toLocaleString())}</p>
+                <p><strong>Status:</strong> <span class="status-${escapeHtml(data.status)}">${escapeHtml(data.status)}</span></p>
+                <p><strong>Match Score:</strong> ${data.match_score != null ? escapeHtml(data.match_score) + '%' : 'N/A'}</p>
+              </div>
+              <div class="details-section">
+                <h3>🔗 Actions</h3>
+                <a href="${escapeHtml(data.job_url)}" target="_blank" class="btn">View Job Posting</a>
+                ${data.screenshot_path ? `<a href="/screenshots/${escapeHtml(data.screenshot_path)}" target="_blank" class="btn">View Proof</a>` : ''}
+              </div>
+              <div class="details-section">
+                <h3>📝 Notes</h3>
+                <textarea id="notes-${data.id}" rows="3">${escapeHtml(data.notes)}</textarea>
+                <button onclick="saveNotes(${data.id})">Save Notes</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(modal);
+          modal.style.display = 'block';
+          modal.querySelector('.close').onclick = () => modal.remove();
+        });
+    }
+
+    function saveNotes(appId) {
+      const notes = document.getElementById(`notes-${appId}`).value;
+      fetch(`/api/application/${appId}/notes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+    }
+
+    document.querySelectorAll('.application-card').forEach((card) => {
+      card.addEventListener('click', function () {
+        const appId = this.dataset.appId;
+        showApplicationDetails(appId);
+      });
+    });
+  </script>
+</body>
+</html>
