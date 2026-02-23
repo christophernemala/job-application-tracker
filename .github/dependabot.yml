@@ -1,0 +1,46 @@
+# Dependabot configuration for automatic dependency updates
+# Documentation: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Monitor Python dependencies (pip/requirements.txt)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    reviewers:
+      - "christophernemala"
+    assignees:
+      - "christophernemala"
+    # Group minor and patch updates together
+    groups:
+      flask-dependencies:
+        patterns:
+          - "flask*"
+          - "werkzeug"
+          - "jinja2"
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+
+  # Monitor GitHub Actions (if you add workflows later)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
