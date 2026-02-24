@@ -19,3 +19,13 @@ services:
         value: "christophernemala@gmail.com"
       - key: DASHBOARD_PASSWORD
         sync: false
+      - key: LINKEDIN_EMAIL
+        sync: false
+      - key: LINKEDIN_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: JOB_AGENT_PHONE
+        value: "+971-565839277"
+      - key: JOB_AGENT_LOCATION
+        value: "Dubai, UAE"
