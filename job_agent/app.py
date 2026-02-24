@@ -19,7 +19,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
 
 # Dashboard credentials - defaults allow login even without env vars set
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "Orange@2015$")
 
 
 def check_auth(username, password):
