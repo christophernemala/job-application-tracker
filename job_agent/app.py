@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from functools import wraps
-from flask import Flask, jsonify, render_template, request, Response
+from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
 
 from job_agent.config import get_runtime_config_snapshot
 from job_agent.database import (
@@ -14,35 +14,57 @@ from job_agent.database import (
 )
 
 app = Flask(__name__)
+# Secret key for session management - use env var or fallback
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
+
+# Dashboard credentials - defaults allow login even without env vars set
+DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+
 
 def check_auth(username, password):
     """Check if a username/password combination is valid."""
-    # Username defaults to admin, password MUST be set in environment
-    auth_user = os.getenv("DASHBOARD_USER", "admin")
-    auth_pass = os.getenv("DASHBOARD_PASSWORD")
-    if not auth_pass:
-        return False
-    return username == auth_user and password == auth_pass
+    return username == DASHBOARD_USER and password == DASHBOARD_PASSWORD
 
-def authenticate():
-    """Sends a 401 response that enables basic auth"""
-    return Response(
-        'Could not verify your access level for that URL.\n'
-        'You have to login with proper credentials', 401,
-        {'WWW-Authenticate': 'Basic realm="Login Required"'}
-    )
 
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # Check session-based login first
+        if session.get("logged_in"):
+            return f(*args, **kwargs)
+        # Fall back to HTTP Basic Auth for API clients
         auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
+        if auth and check_auth(auth.username, auth.password):
+            return f(*args, **kwargs)
+        # Not authenticated - redirect to login page
+        return redirect(url_for("login"))
     return decorated
+
 
 # Initialize database once at startup, not on every request
 init_database()
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        if check_auth(username, password):
+            session["logged_in"] = True
+            session["username"] = username
+            return redirect(url_for("dashboard"))
+        else:
+            error = "Invalid username or password. Please try again."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 @app.route("/")
@@ -50,8 +72,6 @@ init_database()
 def dashboard():
     applications = list_applications()
     return render_template("dashboard.html", applications=applications)
-
-
 
 
 @app.route("/api/config")
