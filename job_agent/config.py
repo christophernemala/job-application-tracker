@@ -1,5 +1,4 @@
 """Configuration for AI Job Agent user profile, credentials, and job preferences."""
-
 from __future__ import annotations
 
 import os
@@ -19,10 +18,8 @@ def _load_local_env() -> None:
             continue
         key, value = line.split("=", 1)
         value = value.strip()
-        # Strip surrounding quotes (single or double) if present
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
             value = value[1:-1]
-        # Use setdefault so .env values only apply if the variable is not already set
         os.environ.setdefault(key.strip(), value)
 
 
@@ -145,7 +142,6 @@ USER_PROFILE = {
         "Financial Controls": "Bank Reconciliation Systems, IFRS Reporting, Multi-Entity Consolidation, AML Compliance",
         "Treasury & FX": "Multi-Currency Processing, SWIFT Operations, Regulatory Reporting",
     },
-    # Flat skills list for quick matching by the job agent
     "skills": [
         "Order-to-Cash (O2C) Governance",
         "Accounts Receivable Management",
@@ -179,17 +175,55 @@ NAUKRI_GULF_CREDENTIALS = {
     "password": os.getenv("NAUKRI_GULF_PASSWORD", ""),
 }
 
+# =============================================================================
+# JOB SEARCH PREFERENCES
+# Target: Senior AR / Credit & Collections roles from Senior to Assistant Manager
+# =============================================================================
 JOB_SEARCH_PREFERENCES = {
     "target_roles": [
-        "Senior Credit & Collections Executive",
-        "AR Credit & Collections Executive",
-        "Finance Executive - Accounts Receivable",
+        # Senior-level AR & Collections
+        "Senior Accounts Receivable Executive",
+        "Senior Credit and Collections Executive",
+        "Senior AR Executive",
+        "Senior Credit Control Executive",
+        "AR Credit Collections Executive",
+        # Team Leader level
+        "Team Leader Accounts Receivable",
+        "AR Team Leader",
+        "Collections Team Leader",
+        "Credit Control Team Leader",
+        # Assistant Manager level
+        "Assistant Manager Accounts Receivable",
+        "Assistant Manager AR",
+        "Assistant Manager Credit Control",
+        "Assistant Manager Collections",
+        "Assistant Manager Order to Cash",
+        # Manager level (Credit Control)
         "Credit Control Manager",
+        "AR Manager",
         "Accounts Receivable Manager",
+        "Collections Manager",
+        # O2C / Order-to-Cash
+        "Order to Cash Specialist",
+        "Order to Cash Manager",
+        "O2C Lead",
+        "O2C Manager",
         "O2C Specialist",
-        "AR Specialist",
-        "Treasury & FX Accountant",
-        "Finance Executive",
+        # General AR roles in range
+        "Finance Executive Accounts Receivable",
+        "Receivables Executive",
+        "Credit and Collections Specialist",
+    ],
+    # Search keywords used when querying job boards
+    "search_keywords": [
+        "accounts receivable",
+        "credit control",
+        "collections",
+        "order to cash",
+        "AR manager",
+        "credit collections",
+        "O2C",
+        "receivables",
     ],
     "target_industries": [
         "Real Estate",
@@ -199,12 +233,16 @@ JOB_SEARCH_PREFERENCES = {
         "Property Management",
         "FMCG",
         "Retail",
+        "Shared Services",
+        "Technology",
+        "Healthcare",
     ],
     "target_locations": ["Dubai", "Abu Dhabi", "Sharjah", "UAE"],
     "minimum_salary_aed": 12000,
-    "experience_level": "Mid-Senior Level (5-7 years)",
+    "experience_level": "Mid-Senior Level (5-8 years)",
+    # Seniority range: Senior Executive up to Assistant Manager / Manager
+    "seniority_range": ["Senior", "Team Leader", "Assistant Manager", "Manager"],
 }
-
 
 
 def get_naukri_gulf_credentials() -> tuple[str, str]:
