@@ -18,8 +18,9 @@ app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
 
 # Dashboard credentials - defaults allow login even without env vars set
-DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "Orange@2015$")
+# Accept both DASHBOARD_USERNAME (Render env group) and DASHBOARD_USER (legacy)
+DASHBOARD_USER = os.getenv("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USER", "admin")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
 
 
 def check_auth(username, password):
