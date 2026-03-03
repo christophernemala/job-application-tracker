@@ -4,8 +4,9 @@ import importlib
 def test_profile_and_preferences_present():
     from job_agent.config import JOB_SEARCH_PREFERENCES, USER_PROFILE
 
-    assert USER_PROFILE["name"] == "Christopher Nemala"
-    assert USER_PROFILE["email"] == "christophernemala@gmail.com"
+    # Profile fields must be present and non-empty (values come from env vars)
+    assert USER_PROFILE["name"]
+    assert USER_PROFILE["email"]
     assert JOB_SEARCH_PREFERENCES["minimum_salary_aed"] == 12000
 
 

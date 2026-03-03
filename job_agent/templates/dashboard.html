@@ -64,6 +64,22 @@
     .btn-link { display: inline-block; padding: 6px 12px; color: #fff; background: #6366f1; border-radius: 6px; text-decoration: none; font-size: 13px; }
     .btn-link:hover { opacity: 0.9; }
     .btn-save-notes { margin-top: 8px; padding: 6px 14px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    /* ── Agent Panel ── */
+    .agent-panel { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.3); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+    .agent-panel h2 { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 14px; }
+    .agent-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .agent-controls label { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .agent-controls input[type=number] { width: 70px; padding: 8px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-size: 14px; }
+    .agent-controls input[type=number]:focus { outline: none; border-color: #6366f1; }
+    .btn-run { background: linear-gradient(135deg, #6366f1, #3b82f6); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+    .btn-run:hover:not(:disabled) { opacity: 0.85; }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+    .agent-status-bar { margin-top: 14px; font-size: 13px; }
+    .agent-status-bar .status-idle   { color: rgba(255,255,255,0.4); }
+    .agent-status-bar .status-running { color: #fbbf24; }
+    .agent-status-bar .status-done   { color: #4ade80; }
+    .agent-status-bar .status-error  { color: #f87171; }
+    .agent-result { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px; margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.7); white-space: pre-wrap; display: none; }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .header { padding: 12px 16px; } main { padding: 20px 12px; } }
   </style>
 </head>
@@ -92,6 +108,20 @@
           {% if scores %}{{ (scores|sum / scores|length)|round|int }}%{% else %}N/A{% endif %}
         </div>
       </div>
+    </div>
+
+    <!-- ── Agent Runner Panel ─────────────────────────────────────── -->
+    <div class="agent-panel">
+      <h2>🤖 Naukri Gulf Auto-Apply Agent</h2>
+      <div class="agent-controls">
+        <label for="maxApps">Max applications:</label>
+        <input type="number" id="maxApps" value="5" min="1" max="20">
+        <button class="btn-run" id="runAgentBtn" onclick="runAgent()">▶ Run Agent</button>
+      </div>
+      <div class="agent-status-bar">
+        <span id="agentStatusText" class="status-idle">Agent is idle. Click Run Agent to start.</span>
+      </div>
+      <pre class="agent-result" id="agentResult"></pre>
     </div>
 
     <div class="section-header">
@@ -249,6 +279,78 @@
       }).then(function() {
         alert('Notes saved!');
       });
+    }
+
+    // ── Agent Runner ──────────────────────────────────────────────────────────
+    var _pollInterval = null;
+
+    function setAgentStatus(cls, text) {
+      var el = document.getElementById('agentStatusText');
+      el.className = cls;
+      el.textContent = text;
+    }
+
+    function runAgent() {
+      var maxApps = parseInt(document.getElementById('maxApps').value) || 5;
+      document.getElementById('runAgentBtn').disabled = true;
+      document.getElementById('agentResult').style.display = 'none';
+      setAgentStatus('status-running', '⏳ Starting agent...');
+
+      fetch('/api/run-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_applications: maxApps })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          setAgentStatus('status-error', '✖ ' + data.error);
+          document.getElementById('runAgentBtn').disabled = false;
+          return;
+        }
+        setAgentStatus('status-running', '⏳ Agent running — searching Naukri Gulf...');
+        _pollInterval = setInterval(pollAgentStatus, 3000);
+      })
+      .catch(function(err) {
+        setAgentStatus('status-error', '✖ Failed to start: ' + err.message);
+        document.getElementById('runAgentBtn').disabled = false;
+      });
+    }
+
+    function pollAgentStatus() {
+      fetch('/api/agent-status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.running) {
+            clearInterval(_pollInterval);
+            _pollInterval = null;
+            document.getElementById('runAgentBtn').disabled = false;
+            var result = data.last_result;
+            if (!result) {
+              setAgentStatus('status-idle', 'Agent finished with no result.');
+              return;
+            }
+            var hasErrors = result.errors && result.errors.length > 0;
+            setAgentStatus(
+              hasErrors ? 'status-error' : 'status-done',
+              hasErrors
+                ? ('⚠ Done with errors — successful: ' + (result.applications_successful || 0))
+                : ('✔ Done — applied: ' + result.applications_successful + '/' + result.applications_attempted)
+            );
+            var resultEl = document.getElementById('agentResult');
+            resultEl.style.display = 'block';
+            resultEl.textContent = JSON.stringify(result, null, 2);
+            // Reload page to show newly saved applications
+            if ((result.applications_successful || 0) > 0) {
+              setTimeout(function() { window.location.reload(); }, 2000);
+            }
+          } else {
+            setAgentStatus('status-running', '⏳ Agent running — searching Naukri Gulf...');
+          }
+        })
+        .catch(function() {
+          // Network error — keep polling
+        });
     }
   </script>
 </body>

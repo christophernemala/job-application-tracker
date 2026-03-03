@@ -72,22 +72,20 @@ def authenticate_naukri_gulf(email: str, password: str, headless: bool = True) -
         pass_field.send_keys(password)
         
         print(f"DEBUG: Fields filled (Email: {email}, Pwd length: {len(password)})")
-        
+
         # Try JavaScript click first
         button = driver.find_element(By.ID, "loginPageLoginSubmit")
         driver.execute_script("arguments[0].click();", button)
-        
+
         # Fallback: Submit the form directly if no redirection after 3s
-        import time
         time.sleep(3)
         if "/jobseeker/login" in driver.current_url:
             print("DEBUG: Redirection didn't happen yet. Attempting form.submit()...")
             driver.execute_script("document.getElementById('loginPageLoginForm').submit();")
 
         print("DEBUG: Login button clicked. Waiting for redirection...")
-        
+
         # Give it a few seconds to process
-        import time
         time.sleep(5)
         print(f"DEBUG: URL after 5s: {driver.current_url}")
 
@@ -102,8 +100,8 @@ def authenticate_naukri_gulf(email: str, password: str, headless: bool = True) -
             err_msg = driver.find_element(By.ID, "loginPageloginErr").text
             if err_msg:
                 print(f"DEBUG: On-page error message: {err_msg}")
-        except:
-            pass
+        except Exception:
+            print("DEBUG: Could not find on-page error element")
 
         driver.save_screenshot(str(Path(__file__).resolve().parent / "auth_failure.png"))
         with open(Path(__file__).resolve().parent / "auth_failure_source.html", "w", encoding="utf-8") as f:

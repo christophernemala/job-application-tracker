@@ -7,25 +7,32 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn job_agent.app:app
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.10"
+      # ── Naukri Gulf credentials — set in Render dashboard ──
       - key: NAUKRI_GULF_EMAIL
         sync: false
       - key: NAUKRI_GULF_PASSWORD
         sync: false
-      - key: JOB_AGENT_NAME
-        value: "Christopher Nemala"
-      - key: JOB_AGENT_EMAIL
-        value: "christophernemala@gmail.com"
+      # ── Dashboard login — set in Render dashboard ──
+      - key: DASHBOARD_USERNAME
+        sync: false
       - key: DASHBOARD_PASSWORD
         sync: false
-      - key: LINKEDIN_EMAIL
+      # ── Flask session secret — set in Render dashboard ──
+      - key: FLASK_SECRET_KEY
         sync: false
-      - key: LINKEDIN_PASSWORD
-        sync: false
+      # ── OpenAI (optional — enables AI features) ──
       - key: OPENAI_API_KEY
         sync: false
+      # ── User profile (override defaults via Render if needed) ──
+      - key: JOB_AGENT_NAME
+        sync: false
+      - key: JOB_AGENT_EMAIL
+        sync: false
       - key: JOB_AGENT_PHONE
-        value: "+971-565839277"
+        sync: false
       - key: JOB_AGENT_LOCATION
-        value: "Dubai, UAE"
+        sync: false
+      - key: JOB_AGENT_CURRENT_ROLE
+        sync: false
+      - key: JOB_AGENT_YEARS_EXPERIENCE
+        sync: false

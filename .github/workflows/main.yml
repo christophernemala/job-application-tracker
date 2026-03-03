@@ -12,17 +12,26 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
-        
+        python-version: '3.12.10'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     - name: Run tests
+      env:
+        # Provide dummy values so config tests don't raise RuntimeError
+        NAUKRI_GULF_EMAIL: test@example.com
+        NAUKRI_GULF_PASSWORD: test-password
+        JOB_AGENT_NAME: Test User
+        JOB_AGENT_EMAIL: test@example.com
+        DASHBOARD_USERNAME: admin
+        DASHBOARD_PASSWORD: test-password
+        FLASK_SECRET_KEY: ci-test-secret-key
       run: |
         python -m pytest job_agent/tests/ -v

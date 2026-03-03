@@ -130,10 +130,15 @@ function renderDashboard() {
     }, {});
     
     document.getElementById('offersReceived').textContent = statusCounts['Offer'] || 0;
-    
+
+    // Current Stage: highest active stage that has at least 1 application
+    const stageOrder = ['Offer', 'Interview', 'Screening', 'Under Review', 'Applied'];
+    const activeStage = stageOrder.find(s => statusCounts[s] > 0) || 'N/A';
+    document.getElementById('currentStage').textContent = activeStage;
+
     const interviewCount = statusCounts['Interview'] || 0;
-    const responseRate = applications.length > 0 
-        ? Math.round((interviewCount / applications.length) * 100) 
+    const responseRate = applications.length > 0
+        ? Math.round((interviewCount / applications.length) * 100)
         : 0;
     document.getElementById('responseRate').textContent = responseRate + '%';
     

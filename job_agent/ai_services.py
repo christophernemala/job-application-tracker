@@ -64,7 +64,10 @@ Constraints:
         temperature=0.7,
         max_tokens=500,
     )
-    return response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    if not content:
+        raise RuntimeError("OpenAI returned an empty cover letter response")
+    return content.strip()
 
 
 def tailor_resume_to_jjd(job_description: str, master_resume_data: dict[str, Any]) -> dict[str, Any]:
@@ -82,7 +85,10 @@ Job description:\n{job_description}
         messages=[{"role": "user", "content": analysis_prompt}],
         temperature=0.2,
     )
-    insights = _safe_json_loads(analysis_response.choices[0].message.content)
+    analysis_content = analysis_response.choices[0].message.content
+    if not analysis_content:
+        raise RuntimeError("OpenAI returned an empty analysis response")
+    insights = _safe_json_loads(analysis_content)
 
     tailoring_prompt = (
         "Customize the resume for this role and return strict JSON with keys summary, skills, experience.\n"
@@ -99,7 +105,10 @@ Job description:\n{job_description}
         temperature=0.4,
     )
 
-    tailored = _safe_json_loads(tailoring_response.choices[0].message.content)
+    tailoring_content = tailoring_response.choices[0].message.content
+    if not tailoring_content:
+        raise RuntimeError("OpenAI returned an empty tailoring response")
+    tailored = _safe_json_loads(tailoring_content)
 
     final_resume = master_resume_data.copy()
     final_resume["summary"] = tailored["summary"]

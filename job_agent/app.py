@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import threading
 from functools import wraps
-from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
+
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for
 
 from job_agent.config import get_runtime_config_snapshot
 from job_agent.database import (
@@ -14,36 +16,32 @@ from job_agent.database import (
 )
 
 app = Flask(__name__)
-# Secret key for session management - use env var or fallback
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
 
-# Dashboard credentials - defaults allow login even without env vars set
-# Accept both DASHBOARD_USERNAME (Render env group) and DASHBOARD_USER (legacy)
 DASHBOARD_USER = os.getenv("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
 
+# Shared state for the background agent run
+_agent_state: dict = {"running": False, "last_result": None}
+
 
 def check_auth(username, password):
-    """Check if a username/password combination is valid."""
     return username == DASHBOARD_USER and password == DASHBOARD_PASSWORD
 
 
 def requires_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # Check session-based login first
         if session.get("logged_in"):
             return f(*args, **kwargs)
-        # Fall back to HTTP Basic Auth for API clients
         auth = request.authorization
         if auth and check_auth(auth.username, auth.password):
             return f(*args, **kwargs)
-        # Not authenticated - redirect to login page
         return redirect(url_for("login"))
     return decorated
 
 
-# Initialize database once at startup, not on every request
+# Initialize database once at startup
 init_database()
 
 
@@ -78,7 +76,6 @@ def dashboard():
 @app.route("/api/config")
 @requires_auth
 def runtime_config():
-    """Expose non-secret runtime configuration for verification."""
     return jsonify(get_runtime_config_snapshot())
 
 
@@ -105,11 +102,20 @@ def save_notes(app_id: int):
 @app.route("/api/applications", methods=["POST"])
 @requires_auth
 def create_application():
-    payload = request.get_json()
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    # Validate required fields
+    required = ["job_title", "company", "platform"]
+    missing = [f for f in required if not str(payload.get(f, "")).strip()]
+    if missing:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
     app_id = save_application(
-        job_title=payload["job_title"],
-        company=payload["company"],
-        platform=payload["platform"],
+        job_title=payload["job_title"].strip(),
+        company=payload["company"].strip(),
+        platform=payload["platform"].strip(),
         job_url=payload.get("job_url", ""),
         status=payload.get("status", "applied"),
         match_score=payload.get("match_score"),
@@ -118,6 +124,56 @@ def create_application():
         screenshot_path=payload.get("screenshot_path"),
     )
     return jsonify({"id": app_id}), 201
+
+
+# ── Agent Run Endpoints ────────────────────────────────────────────────────────
+
+def _run_agent_background(max_applications: int) -> None:
+    """Run the Naukri job search in a background thread."""
+    from job_agent.naukri_runner import run_naukri_job_search
+    try:
+        result = run_naukri_job_search(max_applications=max_applications, headless=True)
+        _agent_state["last_result"] = result
+    except Exception as exc:
+        _agent_state["last_result"] = {"errors": [str(exc)]}
+    finally:
+        _agent_state["running"] = False
+
+
+@app.route("/api/run-agent", methods=["POST"])
+@requires_auth
+def run_agent():
+    """Start the Naukri Gulf auto-apply agent in a background thread."""
+    if _agent_state["running"]:
+        return jsonify({"error": "Agent is already running"}), 409
+
+    payload = request.get_json(silent=True) or {}
+    max_applications = int(payload.get("max_applications", 5))
+    if not 1 <= max_applications <= 20:
+        return jsonify({"error": "max_applications must be between 1 and 20"}), 400
+
+    _agent_state["running"] = True
+    _agent_state["last_result"] = None
+    thread = threading.Thread(
+        target=_run_agent_background,
+        args=(max_applications,),
+        daemon=True,
+    )
+    thread.start()
+    return jsonify({
+        "ok": True,
+        "message": f"Agent started — will attempt up to {max_applications} applications",
+    })
+
+
+@app.route("/api/agent-status")
+@requires_auth
+def agent_status():
+    """Poll agent run status and last result."""
+    return jsonify({
+        "running": _agent_state["running"],
+        "last_result": _agent_state["last_result"],
+    })
 
 
 if __name__ == "__main__":
