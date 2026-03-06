@@ -330,3 +330,180 @@ document.getElementById('clearDataBtn')?.addEventListener('click', () => {
 // Initialize on load
 console.log('Job Application Tracker loaded successfully!');
 console.log(`Total applications: ${applications.length}`);
+
+// ==========================================================================
+// ATS Optimizer
+// ==========================================================================
+
+// Sub-navigation
+document.querySelectorAll('.ats-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.ats-nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.ats-panel').forEach(p => p.style.display = 'none');
+        btn.classList.add('active');
+        const panel = document.getElementById('ats-' + btn.dataset.ats);
+        if (panel) panel.style.display = 'block';
+    });
+});
+
+function atsBackend() {
+    const url = (document.getElementById('atsBackendUrl')?.value || '').trim();
+    return url || 'http://localhost:5001';
+}
+
+async function atsPost(endpoint, body) {
+    const base = atsBackend();
+    const resp = await fetch(`${base}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    return resp.json();
+}
+
+function atsLoading(outputId) {
+    const el = document.getElementById(outputId);
+    el.style.display = 'block';
+    el.innerHTML = '<div class="ats-spinner">Analyzing with Claude AI...</div>';
+    return el;
+}
+
+function atsError(outputId, message) {
+    const el = document.getElementById(outputId);
+    el.style.display = 'block';
+    el.innerHTML = `<div class="ats-error">Error: ${message}</div>`;
+}
+
+function atsRenderJson(outputId, data, title) {
+    const el = document.getElementById(outputId);
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div class="ats-result-header">
+            <strong>${title}</strong>
+            <button class="ats-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('${outputId}-text').innerText)">Copy</button>
+        </div>
+        <div id="${outputId}-text" class="ats-result-body">${atsFormatResult(data)}</div>`;
+}
+
+function atsRenderText(outputId, text, title) {
+    const el = document.getElementById(outputId);
+    el.style.display = 'block';
+    el.innerHTML = `
+        <div class="ats-result-header">
+            <strong>${title}</strong>
+            <button class="ats-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('${outputId}-text').innerText)">Copy</button>
+        </div>
+        <pre id="${outputId}-text" class="ats-result-body ats-pre">${escapeHtml(text)}</pre>`;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function atsFormatResult(obj, indent = 0) {
+    if (typeof obj === 'string') return `<span>${escapeHtml(obj)}</span>`;
+    if (Array.isArray(obj)) {
+        return '<ul>' + obj.map(item => `<li>${atsFormatResult(item, indent + 1)}</li>`).join('') + '</ul>';
+    }
+    if (typeof obj === 'object' && obj !== null) {
+        return Object.entries(obj).map(([k, v]) => {
+            const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            if (k === 'score') {
+                const color = v >= 70 ? '#4caf50' : v >= 50 ? '#ff9800' : '#f44336';
+                return `<div class="ats-field"><span class="ats-label">${escapeHtml(label)}</span><span class="ats-score" style="color:${color};font-size:2em;font-weight:700">${v}/100</span></div>`;
+            }
+            return `<div class="ats-field"><span class="ats-label">${escapeHtml(label)}</span><div class="ats-value">${atsFormatResult(v, indent + 1)}</div></div>`;
+        }).join('');
+    }
+    return `<span>${escapeHtml(String(obj))}</span>`;
+}
+
+// Button handlers
+
+document.getElementById('btnParseJd')?.addEventListener('click', async () => {
+    const jd = document.getElementById('atsJd').value.trim();
+    if (!jd) return alert('Paste a job description first.');
+    atsLoading('parseJdOutput');
+    const res = await atsPost('/api/ats/parse-jd', { jd_text: jd });
+    if (res.ok) atsRenderJson('parseJdOutput', res.result, 'Job Description Analysis');
+    else atsError('parseJdOutput', res.error);
+});
+
+document.getElementById('btnScore')?.addEventListener('click', async () => {
+    const jd = document.getElementById('atsJd').value.trim();
+    const resume = document.getElementById('atsResume').value.trim();
+    if (!jd || !resume) return alert('Paste both your resume and the job description.');
+    atsLoading('scoreOutput');
+    const res = await atsPost('/api/ats/score', { resume_text: resume, jd_text: jd });
+    if (res.ok) atsRenderJson('scoreOutput', res.result, 'Alignment Score Report');
+    else atsError('scoreOutput', res.error);
+});
+
+document.getElementById('btnRewriteBullets')?.addEventListener('click', async () => {
+    const jd = document.getElementById('atsJd').value.trim();
+    const rawBullets = document.getElementById('atsBullets').value.trim();
+    const context = document.getElementById('atsBulletContext').value.trim();
+    if (!jd || !rawBullets) return alert('Paste the job description and your bullet points.');
+    const bullets = rawBullets.split('\n').map(b => b.replace(/^[-•*]\s*/, '').trim()).filter(Boolean);
+    atsLoading('bulletsOutput');
+    const res = await atsPost('/api/ats/rewrite-bullets', {
+        bullets,
+        jd_context: jd,
+        candidate_context: context,
+    });
+    if (res.ok) atsRenderJson('bulletsOutput', { rewritten_bullets: res.result }, 'Rewritten Bullet Points');
+    else atsError('bulletsOutput', res.error);
+});
+
+document.getElementById('btnCoverLetter')?.addEventListener('click', async () => {
+    const jd = document.getElementById('atsJd').value.trim();
+    const resume = document.getElementById('atsResume').value.trim();
+    const company = document.getElementById('atsCoverCompany').value.trim();
+    const role = document.getElementById('atsCoverRole').value.trim();
+    const name = document.getElementById('atsCoverName').value.trim();
+    const manager = document.getElementById('atsCoverManager').value.trim();
+    if (!jd || !resume || !company || !role) return alert('Fill in the JD, resume, company, and role fields.');
+    atsLoading('coverOutput');
+    const res = await atsPost('/api/ats/cover-letter', {
+        resume_text: resume,
+        jd_text: jd,
+        company_name: company,
+        role_title: role,
+        candidate_name: name,
+        hiring_manager: manager,
+    });
+    if (res.ok) atsRenderText('coverOutput', res.result, 'Cover Letter');
+    else atsError('coverOutput', res.error);
+});
+
+document.getElementById('btnLinkedIn')?.addEventListener('click', async () => {
+    const resume = document.getElementById('atsResume').value.trim();
+    const role = document.getElementById('atsLinkedInRole').value.trim();
+    const industry = document.getElementById('atsLinkedInIndustry').value.trim();
+    if (!resume || !role) return alert('Paste your resume and enter the target role.');
+    atsLoading('linkedinOutput');
+    const res = await atsPost('/api/ats/linkedin', {
+        profile_data: { raw_resume: resume },
+        target_role: role,
+        target_industry: industry,
+    });
+    if (res.ok) atsRenderJson('linkedinOutput', res.result, 'LinkedIn Optimization');
+    else atsError('linkedinOutput', res.error);
+});
+
+document.getElementById('btnFullResume')?.addEventListener('click', async () => {
+    const jd = document.getElementById('atsJd').value.trim();
+    const resume = document.getElementById('atsResume').value.trim();
+    const role = document.getElementById('atsFullRole').value.trim();
+    const company = document.getElementById('atsFullCompany').value.trim();
+    if (!jd || !resume || !role) return alert('Paste your resume, the JD, and the target role.');
+    atsLoading('fullResumeOutput');
+    const res = await atsPost('/api/ats/resume', {
+        resume_data: { raw_resume: resume },
+        jd_text: jd,
+        target_role: role,
+        target_company: company,
+    });
+    if (res.ok) atsRenderText('fullResumeOutput', res.result, 'ATS-Optimized Resume');
+    else atsError('fullResumeOutput', res.error);
+});

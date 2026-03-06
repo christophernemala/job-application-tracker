@@ -12,6 +12,7 @@ from job_agent.database import (
     save_application,
     update_application_notes,
 )
+import job_agent.ats_optimizer as ats
 
 app = Flask(__name__)
 # Secret key for session management - use env var or fallback
@@ -118,6 +119,138 @@ def create_application():
         screenshot_path=payload.get("screenshot_path"),
     )
     return jsonify({"id": app_id}), 201
+
+
+# ---------------------------------------------------------------------------
+# ATS Optimizer API endpoints
+# ---------------------------------------------------------------------------
+
+def _ats_route(func_name: str, payload: dict) -> tuple:
+    """Shared error wrapper for ATS endpoints."""
+    try:
+        fn = getattr(ats, func_name)
+        result = fn(**payload)
+        return jsonify({"ok": True, "result": result}), 200
+    except RuntimeError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"ATS error: {str(e)}"}), 500
+
+
+@app.route("/api/ats/parse-jd", methods=["POST"])
+def ats_parse_jd():
+    """Parse a job description and extract structured requirements."""
+    body = request.get_json(silent=True) or {}
+    jd = body.get("jd_text", "").strip()
+    if not jd:
+        return jsonify({"ok": False, "error": "jd_text is required"}), 400
+    return _ats_route("parse_job_description", {"jd_text": jd})
+
+
+@app.route("/api/ats/score", methods=["POST"])
+def ats_score():
+    """Score resume-to-JD alignment."""
+    body = request.get_json(silent=True) or {}
+    resume = body.get("resume_text", "").strip()
+    jd = body.get("jd_text", "").strip()
+    if not resume or not jd:
+        return jsonify({"ok": False, "error": "resume_text and jd_text are required"}), 400
+    return _ats_route("score_alignment", {"resume_text": resume, "jd_text": jd})
+
+
+@app.route("/api/ats/gaps", methods=["POST"])
+def ats_gaps():
+    """Analyze skill gaps and suggest learning paths."""
+    body = request.get_json(silent=True) or {}
+    resume = body.get("resume_text", "").strip()
+    jd = body.get("jd_text", "").strip()
+    if not resume or not jd:
+        return jsonify({"ok": False, "error": "resume_text and jd_text are required"}), 400
+    return _ats_route("analyze_skill_gaps", {"resume_text": resume, "jd_text": jd})
+
+
+@app.route("/api/ats/rewrite-bullets", methods=["POST"])
+def ats_rewrite_bullets():
+    """Rewrite resume bullet points for a specific role."""
+    body = request.get_json(silent=True) or {}
+    bullets = body.get("bullets", [])
+    jd_context = body.get("jd_context", "").strip()
+    candidate_context = body.get("candidate_context", "")
+    if not bullets or not jd_context:
+        return jsonify({"ok": False, "error": "bullets and jd_context are required"}), 400
+    return _ats_route("rewrite_bullets", {
+        "bullets": bullets,
+        "jd_context": jd_context,
+        "candidate_context": candidate_context,
+    })
+
+
+@app.route("/api/ats/resume", methods=["POST"])
+def ats_resume():
+    """Generate a full ATS-optimized resume in plain text."""
+    body = request.get_json(silent=True) or {}
+    resume_data = body.get("resume_data", {})
+    jd = body.get("jd_text", "").strip()
+    target_role = body.get("target_role", "").strip()
+    if not resume_data or not jd or not target_role:
+        return jsonify({"ok": False, "error": "resume_data, jd_text, and target_role are required"}), 400
+    return _ats_route("generate_ats_resume", {
+        "resume_data": resume_data,
+        "jd_text": jd,
+        "target_role": target_role,
+        "target_company": body.get("target_company", ""),
+    })
+
+
+@app.route("/api/ats/cover-letter", methods=["POST"])
+def ats_cover_letter():
+    """Generate a targeted cover letter from real experience."""
+    body = request.get_json(silent=True) or {}
+    resume_text = body.get("resume_text", "").strip()
+    jd = body.get("jd_text", "").strip()
+    company = body.get("company_name", "").strip()
+    role = body.get("role_title", "").strip()
+    if not resume_text or not jd or not company or not role:
+        return jsonify({"ok": False, "error": "resume_text, jd_text, company_name, and role_title are required"}), 400
+    return _ats_route("generate_cover_letter", {
+        "resume_text": resume_text,
+        "jd_text": jd,
+        "company_name": company,
+        "role_title": role,
+        "candidate_name": body.get("candidate_name", ""),
+        "hiring_manager": body.get("hiring_manager", ""),
+    })
+
+
+@app.route("/api/ats/linkedin", methods=["POST"])
+def ats_linkedin():
+    """Generate optimized LinkedIn sections."""
+    body = request.get_json(silent=True) or {}
+    profile_data = body.get("profile_data", {})
+    target_role = body.get("target_role", "").strip()
+    if not profile_data or not target_role:
+        return jsonify({"ok": False, "error": "profile_data and target_role are required"}), 400
+    return _ats_route("optimize_linkedin", {
+        "profile_data": profile_data,
+        "target_role": target_role,
+        "target_industry": body.get("target_industry", ""),
+    })
+
+
+@app.route("/api/ats/resume-variant", methods=["POST"])
+def ats_resume_variant():
+    """Generate role-family-specific resume variant guidance."""
+    body = request.get_json(silent=True) or {}
+    resume_data = body.get("resume_data", {})
+    jd = body.get("jd_text", "").strip()
+    job_family = body.get("job_family", "").strip()
+    if not resume_data or not jd or not job_family:
+        return jsonify({"ok": False, "error": "resume_data, jd_text, and job_family are required"}), 400
+    return _ats_route("generate_resume_variant", {
+        "resume_data": resume_data,
+        "jd_text": jd,
+        "job_family": job_family,
+    })
 
 
 if __name__ == "__main__":

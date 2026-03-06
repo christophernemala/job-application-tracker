@@ -79,3 +79,72 @@ th { color: #a9b9ea; }
 @media (max-width: 780px) {
   .grid-form, .filters { grid-template-columns: 1fr; }
 }
+
+/* =========================================================
+   ATS Optimizer
+   ========================================================= */
+.ats-output {
+  background: rgba(10,18,48,0.9);
+  border: 1px solid #273867;
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 16px;
+}
+.ats-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 15px;
+}
+.ats-copy-btn {
+  background: #2a3d75;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ats-copy-btn:hover { background: #3a50a0; }
+.ats-result-body { font-size: 14px; }
+.ats-pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  color: #d0e0ff;
+  line-height: 1.6;
+}
+.ats-field {
+  margin-bottom: 14px;
+  border-bottom: 1px solid #1e2e5a;
+  padding-bottom: 10px;
+}
+.ats-label {
+  display: block;
+  color: #7a9adf;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.ats-value { color: #e0eaff; }
+.ats-score { display: block; margin-top: 2px; }
+.ats-field ul { margin: 4px 0; padding-left: 18px; }
+.ats-field li { margin-bottom: 3px; color: #c5d8ff; }
+.ats-spinner {
+  text-align: center;
+  color: #7a9adf;
+  padding: 30px;
+  font-size: 15px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.ats-error {
+  color: #ff6b6b;
+  background: #2a0d0d;
+  border-radius: 8px;
+  padding: 14px;
+}
+

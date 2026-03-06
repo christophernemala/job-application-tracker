@@ -18,6 +18,7 @@
             <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
             <button class="tab-btn" data-tab="applications">Applications DB</button>
             <button class="tab-btn" data-tab="ai-studio">AI Studio</button>
+            <button class="tab-btn" data-tab="ats-optimizer">ATS Optimizer</button>
         </nav>
 
         <!-- Dashboard Tab -->
@@ -157,6 +158,116 @@
             </div>
         </section>
     </div>
+
+        <!-- ATS Optimizer Tab -->
+        <section id="ats-optimizer" class="tab-content">
+
+            <!-- Backend URL config -->
+            <div class="form-card" style="margin-bottom:16px;">
+                <h3>⚙️ Backend Connection</h3>
+                <p style="font-size:13px;color:#aaa;margin-bottom:8px;">
+                    ATS features require the Flask backend running locally or on Render.
+                    Set the URL below (leave empty if running on the same host at port 5001).
+                </p>
+                <input type="text" id="atsBackendUrl" placeholder="http://localhost:5001  (leave empty for same host)" style="width:100%;box-sizing:border-box;">
+            </div>
+
+            <!-- Sub-navigation -->
+            <div class="filter-tabs" style="margin-bottom:20px;">
+                <button class="ats-nav-btn active" data-ats="analyze">Analyze JD</button>
+                <button class="ats-nav-btn" data-ats="score">Score Resume</button>
+                <button class="ats-nav-btn" data-ats="bullets">Rewrite Bullets</button>
+                <button class="ats-nav-btn" data-ats="cover">Cover Letter</button>
+                <button class="ats-nav-btn" data-ats="linkedin">LinkedIn</button>
+                <button class="ats-nav-btn" data-ats="full-resume">Full Resume</button>
+            </div>
+
+            <!-- Shared resume/JD inputs -->
+            <div class="form-card" style="margin-bottom:16px;">
+                <h3>📄 Your Inputs</h3>
+                <label style="font-size:13px;color:#aaa;">Job Description</label>
+                <textarea id="atsJd" rows="6" placeholder="Paste the full job description here..."></textarea>
+                <label style="font-size:13px;color:#aaa;margin-top:10px;display:block;">Your Resume / Experience (plain text)</label>
+                <textarea id="atsResume" rows="8" placeholder="Paste your resume as plain text..."></textarea>
+            </div>
+
+            <!-- Panel: Analyze JD -->
+            <div id="ats-analyze" class="ats-panel">
+                <div class="form-card">
+                    <h3>🔍 Job Description Analyzer</h3>
+                    <p style="font-size:13px;color:#aaa;">Extracts required skills, tools, keywords, and responsibilities from the JD.</p>
+                    <button class="ai-btn" id="btnParseJd">Analyze Job Description</button>
+                </div>
+                <div id="parseJdOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+            <!-- Panel: Score Resume -->
+            <div id="ats-score" class="ats-panel" style="display:none;">
+                <div class="form-card">
+                    <h3>📊 Resume–JD Alignment Score</h3>
+                    <p style="font-size:13px;color:#aaa;">Scores your resume against the JD and shows matched skills, gaps, and top improvements.</p>
+                    <button class="ai-btn" id="btnScore">Score My Resume</button>
+                </div>
+                <div id="scoreOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+            <!-- Panel: Rewrite Bullets -->
+            <div id="ats-bullets" class="ats-panel" style="display:none;">
+                <div class="form-card">
+                    <h3>✏️ Bullet Point Rewriter</h3>
+                    <p style="font-size:13px;color:#aaa;">Paste your existing bullet points (one per line). They will be rewritten using strong action verbs and ATS keywords — based only on your real experience.</p>
+                    <textarea id="atsBullets" rows="6" placeholder="• Managed accounts receivable team&#10;• Handled invoice processing&#10;• Worked with Oracle system"></textarea>
+                    <label style="font-size:13px;color:#aaa;margin-top:10px;display:block;">Extra context (optional — add any metrics or details you want included)</label>
+                    <textarea id="atsBulletContext" rows="3" placeholder="e.g. Team of 4, reduced DSO from 65 to 42 days, processed ~$2M/month..."></textarea>
+                    <button class="ai-btn" id="btnRewriteBullets" style="margin-top:12px;">Rewrite Bullets</button>
+                </div>
+                <div id="bulletsOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+            <!-- Panel: Cover Letter -->
+            <div id="ats-cover" class="ats-panel" style="display:none;">
+                <div class="form-card">
+                    <h3>📝 Cover Letter Generator</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <input type="text" id="atsCoverCompany" placeholder="Company Name">
+                        <input type="text" id="atsCoverRole" placeholder="Role Title">
+                        <input type="text" id="atsCoverName" placeholder="Your Full Name">
+                        <input type="text" id="atsCoverManager" placeholder="Hiring Manager (optional)">
+                    </div>
+                    <button class="ai-btn" id="btnCoverLetter">Generate Cover Letter</button>
+                </div>
+                <div id="coverOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+            <!-- Panel: LinkedIn -->
+            <div id="ats-linkedin" class="ats-panel" style="display:none;">
+                <div class="form-card">
+                    <h3>💼 LinkedIn Optimizer</h3>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <input type="text" id="atsLinkedInRole" placeholder="Target Role (e.g. Senior AR Manager)">
+                        <input type="text" id="atsLinkedInIndustry" placeholder="Target Industry (e.g. Real Estate)">
+                    </div>
+                    <p style="font-size:13px;color:#aaa;">Uses your resume text above as profile data.</p>
+                    <button class="ai-btn" id="btnLinkedIn">Optimize LinkedIn Profile</button>
+                </div>
+                <div id="linkedinOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+            <!-- Panel: Full Resume -->
+            <div id="ats-full-resume" class="ats-panel" style="display:none;">
+                <div class="form-card">
+                    <h3>📄 Full ATS Resume Generator</h3>
+                    <p style="font-size:13px;color:#aaa;">Generates a complete, ATS-optimized resume in plain text based on your experience and the JD. Paste your resume above and fill in details below.</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                        <input type="text" id="atsFullRole" placeholder="Target Role Title">
+                        <input type="text" id="atsFullCompany" placeholder="Target Company (optional)">
+                    </div>
+                    <button class="ai-btn" id="btnFullResume">Generate Full Resume</button>
+                </div>
+                <div id="fullResumeOutput" class="ats-output" style="display:none;"></div>
+            </div>
+
+        </section>
 
     <script src="app.js"></script>
 </body>
