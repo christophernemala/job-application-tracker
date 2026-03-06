@@ -4,28 +4,37 @@ services:
     name: job-application-tracker
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r job_agent/requirements.txt
     startCommand: gunicorn job_agent.app:app
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.10"
+      # AI provider — set whichever key you have (Anthropic > OpenAI > Groq)
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      # Optional: force a specific provider (anthropic | openai | groq)
+      - key: ATS_PROVIDER
+        sync: false
+      # Job automation (Naukri Gulf)
       - key: NAUKRI_GULF_EMAIL
         sync: false
       - key: NAUKRI_GULF_PASSWORD
         sync: false
+      # Dashboard auth
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      # Candidate profile
       - key: JOB_AGENT_NAME
         value: "Christopher Nemala"
       - key: JOB_AGENT_EMAIL
         value: "christophernemala@gmail.com"
-      - key: DASHBOARD_PASSWORD
-        sync: false
-      - key: LINKEDIN_EMAIL
-        sync: false
-      - key: LINKEDIN_PASSWORD
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
       - key: JOB_AGENT_PHONE
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
         value: "Dubai, UAE"
+</content>
+</invoke>
