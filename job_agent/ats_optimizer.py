@@ -1,7 +1,13 @@
-"""Legitimate ATS resume optimization using Claude AI.
+"""ATS resume optimization — works with any supported AI provider.
 
-All features help candidates present their real experience more effectively.
-No fabrication, hidden text, or deceptive techniques.
+Provider is auto-detected from environment variables in this order:
+  1. ANTHROPIC_API_KEY  → Claude claude-opus-4-6  (best quality)
+  2. OPENAI_API_KEY     → GPT-4o
+  3. GROQ_API_KEY       → llama-3.3-70b-versatile (free tier available)
+
+Override with ATS_PROVIDER=anthropic|openai|groq
+
+All features use only the candidate's real experience — no fabrication.
 """
 
 from __future__ import annotations
@@ -10,33 +16,85 @@ import json
 import os
 from typing import Any
 
-import anthropic
+# ---------------------------------------------------------------------------
+# Provider selection
+# ---------------------------------------------------------------------------
 
-MODEL = "claude-opus-4-6"
+def _detect_provider() -> str:
+    override = os.getenv("ATS_PROVIDER", "").lower()
+    if override in ("anthropic", "openai", "groq"):
+        return override
+    if os.getenv("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    if os.getenv("GROQ_API_KEY"):
+        return "groq"
+    raise RuntimeError(
+        "No AI API key found. Set one of: "
+        "ANTHROPIC_API_KEY, OPENAI_API_KEY, or GROQ_API_KEY"
+    )
 
 
-def _client() -> anthropic.Anthropic:
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
-    return anthropic.Anthropic(api_key=api_key)
+_MODELS = {
+    "anthropic": "claude-opus-4-6",
+    "openai": "gpt-4o",
+    "groq": "llama-3.3-70b-versatile",
+}
 
 
 def _ask(system: str, user: str, max_tokens: int = 2048) -> str:
-    """Single Claude call with streaming, returns full text."""
-    client = _client()
+    """Call whichever provider is active; return full response text."""
+    provider = _detect_provider()
+
+    if provider == "anthropic":
+        return _ask_anthropic(system, user, max_tokens)
+    else:
+        # OpenAI-compatible (openai + groq both use the same SDK interface)
+        return _ask_openai_compat(provider, system, user, max_tokens)
+
+
+def _ask_anthropic(system: str, user: str, max_tokens: int) -> str:
+    import anthropic as _anthropic
+    client = _anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     with client.messages.stream(
-        model=MODEL,
+        model=_MODELS["anthropic"],
         max_tokens=max_tokens,
         thinking={"type": "adaptive"},
         system=system,
         messages=[{"role": "user", "content": user}],
     ) as stream:
-        return stream.get_final_message().content[-1].text
+        msg = stream.get_final_message()
+        # last text block
+        for block in reversed(msg.content):
+            if getattr(block, "type", None) == "text":
+                return block.text
+        return ""
+
+
+def _ask_openai_compat(provider: str, system: str, user: str, max_tokens: int) -> str:
+    from openai import OpenAI
+    if provider == "groq":
+        client = OpenAI(
+            api_key=os.environ["GROQ_API_KEY"],
+            base_url="https://api.groq.com/openai/v1",
+        )
+    else:
+        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+    resp = client.chat.completions.create(
+        model=_MODELS[provider],
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+    return resp.choices[0].message.content or ""
 
 
 def _ask_json(system: str, user: str, max_tokens: int = 2048) -> dict[str, Any]:
-    """Claude call that returns parsed JSON."""
+    """Provider call that returns parsed JSON."""
     result = _ask(system, user + "\n\nRespond with valid JSON only, no markdown fences.", max_tokens)
     result = result.strip()
     if result.startswith("```"):
@@ -47,16 +105,19 @@ def _ask_json(system: str, user: str, max_tokens: int = 2048) -> dict[str, Any]:
     return json.loads(result)
 
 
+def active_provider() -> str:
+    """Return which provider will be used (for display in API/UI)."""
+    try:
+        return _detect_provider()
+    except RuntimeError:
+        return "none"
+
+
 # ---------------------------------------------------------------------------
 # 1. Job Description Parser
 # ---------------------------------------------------------------------------
 
 def parse_job_description(jd_text: str) -> dict[str, Any]:
-    """Extract structured requirements from a job description.
-
-    Returns keys: skills, tools, certifications, responsibilities,
-                  keywords, experience_level, industry, location.
-    """
     system = (
         "You are an expert recruiter and job analyst. "
         "Extract structured information from job descriptions accurately."
@@ -81,11 +142,6 @@ Job Description:
 # ---------------------------------------------------------------------------
 
 def score_alignment(resume_text: str, jd_text: str) -> dict[str, Any]:
-    """Score how well a resume matches a job description.
-
-    Returns: score (0-100), matched_skills, missing_skills,
-             partial_matches, top_recommendations.
-    """
     system = (
         "You are an ATS and recruitment expert. "
         "Evaluate resume-to-job-description alignment objectively and honestly."
@@ -113,10 +169,6 @@ Return JSON with:
 # ---------------------------------------------------------------------------
 
 def analyze_skill_gaps(resume_text: str, jd_text: str) -> dict[str, Any]:
-    """Detailed gap analysis with learning path suggestions.
-
-    Returns: critical_gaps, nice_to_have_gaps, learning_paths, timeline_estimate.
-    """
     system = (
         "You are a career development coach specializing in skills analysis. "
         "Provide honest, constructive gap analysis with actionable learning paths."
@@ -148,17 +200,10 @@ def rewrite_bullets(
     jd_context: str,
     candidate_context: str = "",
 ) -> list[str]:
-    """Rewrite resume bullet points to be stronger and more ATS-friendly.
-
-    Uses only the candidate's real experience — no fabrication.
-    Adds metrics framing where the candidate provides them.
-    """
     system = (
         "You are an expert resume writer. Rewrite bullet points to be strong, "
         "metrics-driven, and ATS-friendly. Use only information provided — "
-        "never fabricate achievements, numbers, or experiences. "
-        "If a metric is missing, use language like 'resulting in improved X' "
-        "rather than inventing a number."
+        "never fabricate achievements, numbers, or experiences."
     )
     user = f"""Rewrite these resume bullets to be stronger for this role.
 Rules:
@@ -192,11 +237,6 @@ def generate_ats_resume(
     target_role: str,
     target_company: str = "",
 ) -> str:
-    """Generate a complete ATS-optimized resume in plain text.
-
-    Uses only the candidate's real experience and qualifications.
-    Optimizes structure, keyword placement, and formatting for ATS parsing.
-    """
     system = (
         "You are an expert resume writer creating ATS-optimized resumes. "
         "Use ONLY the candidate's real experience provided. "
@@ -237,14 +277,9 @@ def optimize_linkedin(
     target_role: str,
     target_industry: str = "",
 ) -> dict[str, Any]:
-    """Generate optimized LinkedIn sections based on real qualifications.
-
-    Returns: headline, about, skills_to_add, experience_tips.
-    """
     system = (
         "You are a LinkedIn optimization expert. Create compelling, "
-        "keyword-rich LinkedIn content using only the candidate's real experience. "
-        "No fabrication of roles, skills, or achievements."
+        "keyword-rich LinkedIn content using only the candidate's real experience."
     )
     user = f"""Optimize this LinkedIn profile for the target role.
 
@@ -275,7 +310,6 @@ def generate_cover_letter(
     candidate_name: str = "",
     hiring_manager: str = "",
 ) -> str:
-    """Generate a targeted cover letter grounded in the candidate's real experience."""
     system = (
         "You are an expert cover letter writer. "
         "Write compelling, specific cover letters using only the candidate's real experience. "
@@ -313,10 +347,6 @@ def generate_resume_variant(
     jd_text: str,
     job_family: str,
 ) -> dict[str, Any]:
-    """Suggest resume customizations for a specific job family.
-
-    Returns variant guidance without altering facts.
-    """
     system = (
         "You are a resume strategy expert. Advise on how to tailor a resume "
         "for different job families using the candidate's actual experience. "
@@ -333,7 +363,7 @@ CANDIDATE DATA:
 Return JSON with:
 - summary_variant: rewritten professional summary for this job family
 - skills_to_emphasize: list of candidate's existing skills to move to top
-- skills_to_de-emphasize: list of less relevant skills to move down or remove
+- skills_to_de_emphasize: list of less relevant skills to move down or remove
 - experience_focus: dict of role → specific bullets to emphasize for this family
 - section_order: recommended section order for this job family
 - keywords_to_add: keywords from JD that can be honestly added based on candidate experience"""

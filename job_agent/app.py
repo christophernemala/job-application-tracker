@@ -121,6 +121,18 @@ def create_application():
     return jsonify({"id": app_id}), 201
 
 
+@app.route("/api/ats/provider", methods=["GET"])
+def ats_provider():
+    """Return which AI provider is currently active."""
+    provider = ats.active_provider()
+    models = {"anthropic": "claude-opus-4-6", "openai": "gpt-4o", "groq": "llama-3.3-70b-versatile"}
+    return jsonify({
+        "provider": provider,
+        "model": models.get(provider, "unknown"),
+        "configured": provider != "none",
+    })
+
+
 # ---------------------------------------------------------------------------
 # ATS Optimizer API endpoints
 # ---------------------------------------------------------------------------

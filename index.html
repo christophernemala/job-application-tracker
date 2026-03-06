@@ -162,14 +162,24 @@
         <!-- ATS Optimizer Tab -->
         <section id="ats-optimizer" class="tab-content">
 
-            <!-- Backend URL config -->
+            <!-- Backend / Provider config -->
             <div class="form-card" style="margin-bottom:16px;">
-                <h3>⚙️ Backend Connection</h3>
+                <h3>⚙️ Connection &amp; Provider</h3>
                 <p style="font-size:13px;color:#aaa;margin-bottom:8px;">
-                    ATS features require the Flask backend running locally or on Render.
-                    Set the URL below (leave empty if running on the same host at port 5001).
+                    ATS features call the Flask backend. Set the URL below (leave empty for <code>localhost:5001</code>).
+                    The backend auto-detects whichever API key you have set — no code changes needed.
                 </p>
-                <input type="text" id="atsBackendUrl" placeholder="http://localhost:5001  (leave empty for same host)" style="width:100%;box-sizing:border-box;">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="atsBackendUrl" placeholder="http://localhost:5001" style="flex:1;min-width:200px;">
+                    <button class="ai-btn" id="btnCheckProvider" style="white-space:nowrap;">Check Provider</button>
+                </div>
+                <div id="atsProviderStatus" style="margin-top:10px;font-size:13px;display:none;padding:8px 12px;border-radius:8px;"></div>
+                <div style="margin-top:12px;font-size:12px;color:#7a9adf;">
+                    <strong>Supported API keys (set on backend):</strong><br>
+                    <code>ANTHROPIC_API_KEY</code> &rarr; Claude claude-opus-4-6 &nbsp;|&nbsp;
+                    <code>OPENAI_API_KEY</code> &rarr; GPT-4o &nbsp;|&nbsp;
+                    <code>GROQ_API_KEY</code> &rarr; Llama-3.3-70b (free tier at groq.com)
+                </div>
             </div>
 
             <!-- Sub-navigation -->

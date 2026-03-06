@@ -418,6 +418,34 @@ function atsFormatResult(obj, indent = 0) {
     return `<span>${escapeHtml(String(obj))}</span>`;
 }
 
+// Check provider button
+document.getElementById('btnCheckProvider')?.addEventListener('click', async () => {
+    const base = atsBackend();
+    const statusEl = document.getElementById('atsProviderStatus');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Checking...';
+    statusEl.style.background = '#1a2a50';
+    statusEl.style.color = '#aaa';
+    try {
+        const res = await fetch(`${base}/api/ats/provider`);
+        const data = await res.json();
+        if (data.configured) {
+            const icons = { anthropic: '🟣', openai: '🟢', groq: '🔵' };
+            statusEl.textContent = `${icons[data.provider] || '✅'} Connected — using ${data.provider.toUpperCase()} (${data.model})`;
+            statusEl.style.background = '#0f2e1a';
+            statusEl.style.color = '#5de0a0';
+        } else {
+            statusEl.textContent = '⚠️ No API key found on backend. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GROQ_API_KEY.';
+            statusEl.style.background = '#2a1a0a';
+            statusEl.style.color = '#ffb347';
+        }
+    } catch {
+        statusEl.textContent = `❌ Cannot reach backend at ${base}. Is it running?`;
+        statusEl.style.background = '#2a0d0d';
+        statusEl.style.color = '#ff6b6b';
+    }
+});
+
 // Button handlers
 
 document.getElementById('btnParseJd')?.addEventListener('click', async () => {

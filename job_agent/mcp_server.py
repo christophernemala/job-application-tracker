@@ -3,22 +3,29 @@
 Exposes the ATS optimizer as MCP tools so Claude Code (or any MCP client)
 can call them directly — no Flask backend or hosting required.
 
+Works with ANY supported API key — set whichever you have:
+  ANTHROPIC_API_KEY  → Claude claude-opus-4-6  (best quality)
+  OPENAI_API_KEY     → GPT-4o
+  GROQ_API_KEY       → Llama-3.3-70b (free tier at groq.com)
+
 Usage:
     python -m job_agent.mcp_server
-    # or via mcp CLI:
-    mcp run job_agent/mcp_server.py
 
-Add to ~/.claude/mcp_servers.json:
+Add to ~/.claude/mcp_servers.json (pick one key):
     {
       "ats-optimizer": {
         "command": "python",
         "args": ["-m", "job_agent.mcp_server"],
         "cwd": "/path/to/job-application-tracker",
-        "env": {"ANTHROPIC_API_KEY": "your-key-here"}
+        "env": {
+          "ANTHROPIC_API_KEY": "sk-ant-...",
+          "__OR__OPENAI_API_KEY": "sk-...",
+          "__OR__GROQ_API_KEY": "gsk_..."
+        }
       }
     }
 
-Cost: $0 hosting — only Anthropic API token costs apply.
+Cost: $0 hosting — only AI API token costs apply.
 """
 
 from __future__ import annotations
@@ -39,9 +46,25 @@ mcp = FastMCP(
         "ATS Resume Optimizer tools. Use these to help analyze job descriptions, "
         "score resume alignment, rewrite bullet points, generate cover letters, "
         "optimize LinkedIn profiles, and create ATS-safe resumes. "
-        "All tools use only the candidate's real experience — no fabrication."
+        "All tools use only the candidate's real experience — no fabrication. "
+        "Supports Anthropic, OpenAI, and Groq — auto-detected from env vars."
     ),
 )
+
+
+@mcp.tool(description="Check which AI provider is active (Anthropic / OpenAI / Groq).")
+def check_provider() -> str:
+    """Show the active AI provider and model."""
+    provider = ats.active_provider()
+    models = {"anthropic": "claude-opus-4-6", "openai": "gpt-4o", "groq": "llama-3.3-70b-versatile"}
+    if provider == "none":
+        return (
+            "No API key configured. Set one of:\n"
+            "  ANTHROPIC_API_KEY  → Claude claude-opus-4-6\n"
+            "  OPENAI_API_KEY     → GPT-4o\n"
+            "  GROQ_API_KEY       → Llama-3.3-70b (free tier)"
+        )
+    return f"Active provider: {provider.upper()} | Model: {models[provider]}"
 
 
 # ---------------------------------------------------------------------------
