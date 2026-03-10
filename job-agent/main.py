@@ -185,29 +185,128 @@ def run_pipeline(args: argparse.Namespace) -> None:
     logger.info("=" * 60)
 
 
-def _collect_jobs(source_config: dict) -> list[dict]:
-    """Collect jobs from a source. Placeholder for Stage 2."""
-    # Will be implemented in Stage 2 with source-specific collectors
-    logger.info("Collector not yet implemented for: %s", source_config["name"])
-    return []
+def _collect_jobs(source_config: dict) -> list:
+    """Collect jobs from a source using the appropriate collector.
+
+    Args:
+        source_config: Source configuration dict.
+
+    Returns:
+        List of RawJob objects.
+    """
+    from src.collectors import get_collector
+
+    collector = get_collector(source_config)
+    return collector.collect()
 
 
-def _parse_and_store(collected: list[dict], source: str) -> list[dict]:
-    """Parse and store collected jobs. Placeholder for Stage 2."""
-    logger.info("Parser not yet implemented")
-    return []
+def _parse_and_store(collected: list, source: str) -> list[dict]:
+    """Parse raw jobs and store new ones in the database.
+
+    Args:
+        collected: List of RawJob objects from a collector.
+        source: Source name.
+
+    Returns:
+        List of newly stored job dicts (excluding duplicates).
+    """
+    from src.parsers.job_parser import parse_raw_job
+    from src.storage.jobs_repo import insert_job, is_duplicate_job, get_job_by_id
+
+    new_jobs = []
+    for raw_job in collected:
+        parsed = parse_raw_job(raw_job)
+
+        # Check for duplicates
+        if is_duplicate_job(
+            source=parsed["source"],
+            url=parsed["url"],
+            company=parsed.get("company"),
+            title=parsed.get("title"),
+        ):
+            logger.debug("Skipping duplicate: %s", parsed["url"])
+            continue
+
+        job_id = insert_job(
+            source=parsed["source"],
+            title=parsed["title"],
+            url=parsed["url"],
+            company=parsed.get("company"),
+            location=parsed.get("location"),
+            salary_text=parsed.get("salary_text"),
+            salary_min=parsed.get("salary_min"),
+            salary_max=parsed.get("salary_max"),
+            posted_date=parsed.get("posted_date"),
+            description=parsed.get("description"),
+            normalized_title=parsed.get("normalized_title"),
+            apply_type=parsed.get("apply_type", "unknown"),
+        )
+
+        if job_id:
+            job = get_job_by_id(job_id)
+            if job:
+                job["metadata"] = parsed.get("metadata", {})
+                new_jobs.append(job)
+
+    return new_jobs
 
 
 def _score_jobs(jobs: list[dict], rules: dict, profile: dict) -> list[dict]:
-    """Score jobs against profile. Placeholder for Stage 2."""
-    logger.info("Scorer not yet implemented")
-    return []
+    """Score jobs against the target profile.
+
+    Args:
+        jobs: List of job dicts.
+        rules: Scoring rules.
+        profile: Candidate profile.
+
+    Returns:
+        List of scored job dicts.
+    """
+    from src.scorers.scoring_engine import ScoringEngine
+    from src.storage.jobs_repo import update_job_score
+
+    engine = ScoringEngine(profile=profile, rules=rules)
+    scored = []
+
+    for job in jobs:
+        score, reason = engine.score_job(job)
+        job["score"] = score
+        job["score_reason"] = reason
+
+        # Persist score to database
+        if "id" in job:
+            update_job_score(job["id"], score, reason)
+
+        scored.append(job)
+        logger.debug(
+            "Scored: %.1f | %s | %s", score, job.get("title", "?"), reason,
+        )
+
+    return scored
 
 
 def _route_jobs(scored_jobs: list[dict], rules: dict) -> dict[str, list[dict]]:
-    """Route scored jobs. Placeholder for Stage 2."""
-    logger.info("Router not yet implemented")
-    return {"auto_apply": [], "semi_auto": [], "manual_review": [], "reject": []}
+    """Route scored jobs to appropriate action paths.
+
+    Args:
+        scored_jobs: List of scored job dicts.
+        rules: Routing rules.
+
+    Returns:
+        Dict of route_status -> list of jobs.
+    """
+    from src.scorers.router import route_jobs
+    from src.storage.jobs_repo import update_job_route
+
+    routed = route_jobs(scored_jobs, rules)
+
+    # Persist route status to database
+    for status, jobs in routed.items():
+        for job in jobs:
+            if "id" in job:
+                update_job_route(job["id"], status)
+
+    return routed
 
 
 def _apply_to_jobs(
