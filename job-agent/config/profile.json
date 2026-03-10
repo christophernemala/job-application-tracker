@@ -1,0 +1,84 @@
+{
+  "candidate_name": "Christopher Nemala",
+  "email": "",
+  "phone": "",
+  "linkedin_url": "",
+  "preferred_locations": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
+  "salary_floor_aed": 14000,
+  "notice_period": "Immediate / 1 month",
+  "visa_status": "Employment Visa – Transferable",
+  "years_experience": 5,
+  "uae_experience_years": 3,
+  "current_location": "Dubai, UAE",
+  "core_skills": [
+    "Accounts Receivable",
+    "Order to Cash (O2C)",
+    "Credit Control",
+    "Collections Management",
+    "Dispute Resolution",
+    "Aging Analysis",
+    "Reconciliation",
+    "Oracle Fusion",
+    "Oracle ERP",
+    "SAP FICO",
+    "Cash Application",
+    "Dunning",
+    "Revenue Recognition",
+    "Financial Reporting",
+    "Stakeholder Management",
+    "Team Leadership"
+  ],
+  "target_titles": [
+    "Senior AR",
+    "Senior Accounts Receivable",
+    "Accounts Receivable Specialist",
+    "O2C",
+    "Order to Cash",
+    "OTC",
+    "Credit Controller",
+    "Senior Credit Controller",
+    "Credit and Collections",
+    "Collections Specialist",
+    "Credit Risk Analyst",
+    "Assistant Manager Credit",
+    "Assistant Manager Collections",
+    "Manager Credit Control",
+    "Collections Manager",
+    "Receivables Analyst",
+    "AR Analyst"
+  ],
+  "excluded_titles": [
+    "Customer Service Representative",
+    "Sales Collection Agent",
+    "Field Collection Agent",
+    "Intern",
+    "Fresh Graduate",
+    "Junior Accountant",
+    "Accounts Payable Clerk",
+    "Data Entry Operator",
+    "Tele-caller",
+    "General Accountant"
+  ],
+  "resume_variants": {
+    "ar_collections": "resumes/christopher_ar_collections.pdf",
+    "credit_control": "resumes/christopher_credit_control.pdf",
+    "o2c": "resumes/christopher_o2c.pdf",
+    "general_finance": "resumes/christopher_general_finance.pdf"
+  },
+  "education": [
+    {
+      "degree": "MBA Finance",
+      "institution": "",
+      "year": 2025
+    },
+    {
+      "degree": "B.Com",
+      "institution": "",
+      "year": 2020
+    }
+  ],
+  "certifications": [
+    "Microsoft Certified Data Analyst",
+    "AI Fundamentals"
+  ]
+}

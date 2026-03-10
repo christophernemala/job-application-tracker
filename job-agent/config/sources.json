@@ -1,0 +1,96 @@
+{
+  "sources": [
+    {
+      "name": "linkedin",
+      "display_name": "LinkedIn",
+      "enabled": true,
+      "type": "browser",
+      "base_url": "https://www.linkedin.com/jobs/search/",
+      "search_urls": [
+        "https://www.linkedin.com/jobs/search/?keywords=accounts+receivable&location=Dubai",
+        "https://www.linkedin.com/jobs/search/?keywords=credit+controller&location=Dubai",
+        "https://www.linkedin.com/jobs/search/?keywords=order+to+cash&location=UAE",
+        "https://www.linkedin.com/jobs/search/?keywords=collections+specialist&location=Dubai",
+        "https://www.linkedin.com/jobs/search/?keywords=AR+analyst&location=Dubai"
+      ],
+      "role_search_strings": [
+        "accounts receivable",
+        "credit controller",
+        "order to cash",
+        "collections specialist",
+        "AR analyst",
+        "credit control",
+        "receivables"
+      ],
+      "polling_interval_minutes": 120,
+      "requires_login": true,
+      "login_url": "https://www.linkedin.com/login",
+      "notes": "LinkedIn Easy Apply supported; external links require separate handling"
+    },
+    {
+      "name": "naukrigulf",
+      "display_name": "NaukriGulf",
+      "enabled": true,
+      "type": "browser",
+      "base_url": "https://www.naukrigulf.com/",
+      "search_urls": [
+        "https://www.naukrigulf.com/accounts-receivable-jobs-in-dubai",
+        "https://www.naukrigulf.com/credit-controller-jobs-in-dubai",
+        "https://www.naukrigulf.com/order-to-cash-jobs-in-uae",
+        "https://www.naukrigulf.com/collections-jobs-in-dubai",
+        "https://www.naukrigulf.com/ar-analyst-jobs-in-dubai"
+      ],
+      "role_search_strings": [
+        "accounts receivable",
+        "credit controller",
+        "order to cash",
+        "collections",
+        "AR analyst",
+        "credit control"
+      ],
+      "polling_interval_minutes": 60,
+      "requires_login": true,
+      "login_url": "https://www.naukrigulf.com/login",
+      "notes": "Primary UAE job board; internal apply system"
+    },
+    {
+      "name": "bayt",
+      "display_name": "Bayt.com",
+      "enabled": false,
+      "type": "browser",
+      "base_url": "https://www.bayt.com/en/uae/jobs/",
+      "search_urls": [
+        "https://www.bayt.com/en/uae/jobs/accounts-receivable-jobs/",
+        "https://www.bayt.com/en/uae/jobs/credit-controller-jobs/",
+        "https://www.bayt.com/en/uae/jobs/order-to-cash-jobs/"
+      ],
+      "role_search_strings": [
+        "accounts receivable",
+        "credit controller",
+        "order to cash"
+      ],
+      "polling_interval_minutes": 180,
+      "requires_login": true,
+      "login_url": "https://www.bayt.com/en/login/",
+      "notes": "Enable when ready; large UAE job board"
+    },
+    {
+      "name": "gulftalent",
+      "display_name": "GulfTalent",
+      "enabled": false,
+      "type": "browser",
+      "base_url": "https://www.gulftalent.com/",
+      "search_urls": [
+        "https://www.gulftalent.com/uae/jobs/accounting-finance"
+      ],
+      "role_search_strings": [
+        "accounts receivable",
+        "credit control"
+      ],
+      "polling_interval_minutes": 240,
+      "requires_login": true,
+      "login_url": "https://www.gulftalent.com/login",
+      "notes": "Enable when ready; niche Middle East board"
+    }
+  ]
+}

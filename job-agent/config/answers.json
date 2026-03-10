@@ -1,0 +1,49 @@
+{
+  "notice_period": "Immediate / 1 month",
+  "visa_status": "Employment Visa – Transferable",
+  "current_location": "Dubai, UAE",
+  "expected_salary": "AED 14,000 – 18,000 per month",
+  "expected_salary_aed": 16000,
+  "total_experience_years": 5,
+  "uae_experience_years": 3,
+  "oracle_fusion_experience": "2+ years hands-on Oracle Fusion Cloud ERP – AR, GL, Cash Management modules",
+  "collections_experience": "3+ years managing end-to-end collections, aging buckets, dunning strategies, and payment follow-ups across B2B and B2C portfolios",
+  "credit_control_experience": "3+ years in credit assessment, limit setting, risk evaluation, and credit policy enforcement",
+  "team_handling_experience": "Led a team of 3-4 AR/collections analysts, managed task allocation, review cycles, and escalation workflows",
+  "reason_for_leaving": "Seeking a growth-oriented role aligned with my specialization in AR, credit control, and collections management",
+  "willingness_to_relocate": "Yes – open to relocation within UAE",
+  "can_join_immediately": "Yes",
+  "highest_qualification": "MBA Finance",
+  "languages_known": "English (Fluent), Hindi (Fluent), Telugu (Native)",
+  "nationality": "",
+  "gender": "Male",
+  "marital_status": "",
+  "driving_license": "UAE Driving License",
+  "erp_systems_used": [
+    "Oracle Fusion Cloud",
+    "Oracle EBS R12",
+    "SAP FICO",
+    "Tally ERP"
+  ],
+  "tools_used": [
+    "Advanced Excel",
+    "Power BI",
+    "SQL",
+    "Python",
+    "MS Office Suite"
+  ],
+  "achievements": [
+    "Reduced DSO by 18 days through proactive collections strategy",
+    "Managed AR portfolio of AED 50M+ across multiple entities",
+    "Automated aging report generation saving 8+ hours per week",
+    "Achieved 95%+ collection rate on 90+ day overdue balances"
+  ],
+  "screening_question_defaults": {
+    "are_you_authorized_to_work": "Yes",
+    "do_you_require_sponsorship": "No – existing transferable visa",
+    "years_of_experience": "5",
+    "willing_to_travel": "Yes",
+    "comfortable_with_shift_work": "Yes",
+    "do_you_have_erp_experience": "Yes – Oracle Fusion, Oracle EBS, SAP FICO"
+  }
+}

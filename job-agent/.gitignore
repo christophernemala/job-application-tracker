@@ -1,0 +1,23 @@
+# Environment
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Database
+data/jobs.db
+data/jobs.db-wal
+data/jobs.db-shm
+
+# Logs (keep structure, ignore contents)
+logs/job_agent.log*
+logs/run_logs/*.log
+logs/screenshots/*.png
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
