@@ -312,9 +312,19 @@ def _route_jobs(scored_jobs: list[dict], rules: dict) -> dict[str, list[dict]]:
 def _apply_to_jobs(
     routed: dict[str, list[dict]], answers: dict, dry_run: bool = False
 ) -> tuple[int, int]:
-    """Apply to eligible jobs. Placeholder for Stage 3."""
-    logger.info("Applier not yet implemented")
-    return 0, 0
+    """Apply to eligible auto_apply jobs using browser automation.
+
+    Args:
+        routed: Dict of route_status -> list of jobs.
+        answers: Pre-filled form answers.
+        dry_run: If True, simulate without submitting.
+
+    Returns:
+        Tuple of (applied_count, failed_count).
+    """
+    from src.appliers.application_engine import apply_to_jobs
+
+    return apply_to_jobs(routed, answers=answers, dry_run=dry_run)
 
 
 def _generate_reports() -> None:
