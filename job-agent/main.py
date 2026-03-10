@@ -328,13 +328,39 @@ def _apply_to_jobs(
 
 
 def _generate_reports() -> None:
-    """Generate summary reports. Placeholder for Stage 4."""
-    logger.info("Reporter not yet implemented")
+    """Generate terminal and HTML summary reports."""
+    from src.reports.report_generator import (
+        get_summary_stats,
+        print_terminal_report,
+        generate_html_report,
+    )
+
+    try:
+        stats = get_summary_stats()
+        print_terminal_report(stats)
+        report_path = generate_html_report(stats)
+        logger.info("HTML report saved: %s", report_path)
+    except Exception as e:
+        logger.error("Report generation failed: %s", str(e))
 
 
 def _send_notifications() -> None:
-    """Send notifications. Placeholder for Stage 4."""
-    logger.info("Notifier not yet implemented")
+    """Send run completion notifications."""
+    from src.notifications.notifier import notify_run_summary
+    from src.storage.run_logs_repo import get_latest_run_log
+
+    try:
+        latest = get_latest_run_log()
+        if latest:
+            notify_run_summary(
+                source=latest.get("source", "unknown"),
+                total_found=latest.get("total_found", 0),
+                total_new=latest.get("total_new", 0),
+                total_applied=latest.get("total_applied", 0),
+                total_failed=latest.get("total_failed", 0),
+            )
+    except Exception as e:
+        logger.error("Notification failed: %s", str(e))
 
 
 def main() -> None:

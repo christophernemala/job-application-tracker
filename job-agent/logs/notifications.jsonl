@@ -1,0 +1,4 @@
+{"timestamp": "2026-03-10T13:58:04.809315", "title": "Test Notification", "message": "This is a test", "level": "info", "job_url": null, "details": null}
+{"timestamp": "2026-03-10T13:58:04.810470", "title": "Application Submitted", "message": "Successfully applied to Senior AR Analyst at Test Corp", "level": "success", "job_url": "https://test.com/1", "details": null}
+{"timestamp": "2026-03-10T13:58:04.811214", "title": "Application Failed", "message": "Failed to apply to Credit Controller at Finance Co: Apply button not found", "level": "error", "job_url": null, "details": null}
+{"timestamp": "2026-03-10T13:58:10.100626", "title": "Run Complete", "message": "[linkedin] Found: 0 | New: 0 | Applied: 0 | Failed: 1", "level": "info", "job_url": null, "details": {"source": "linkedin", "total_found": 0, "total_new": 0, "total_applied": 0, "total_failed": 1}}
