@@ -4,3 +4,7 @@ openai==1.62.0
 pytest==8.3.4
 webdriver-manager==4.0.2
 gunicorn==21.2.0
+apify-client>=1.8.0
+python-dotenv>=1.0.0
+schedule>=1.2.0
+click>=8.1.3
