@@ -25,6 +25,10 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: APIFY_TOKEN
+        sync: false
+      - key: MOCK_MODE
+        value: "false"
       - key: JOB_AGENT_PHONE
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
