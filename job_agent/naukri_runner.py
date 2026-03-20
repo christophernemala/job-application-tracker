@@ -1,4 +1,4 @@
-"""Naukri Gulf Job Search & Auto-Apply Runner"""
+"""Naukri Gulf Job Search & Auto-Apply Runner — Easy Apply focused"""
 from __future__ import annotations
 
 import time
@@ -45,6 +45,16 @@ COMPANY_SELECTORS = [
     "[data-company]",
 ]
 
+# Easy Apply badge selectors — cards that have these have a one-click apply
+EASY_APPLY_CARD_SELECTORS = [
+    ".easy-apply-tag",
+    ".easyApply",
+    ".easy-apply",
+    "[class*='easyApply']",
+    "[class*='easy-apply']",
+    "span.apply-tag",
+]
+
 # Apply button selectors on the job detail page
 APPLY_BTN_SELECTORS = [
     (By.ID, "apply-button"),
@@ -52,10 +62,21 @@ APPLY_BTN_SELECTORS = [
     (By.CSS_SELECTOR, "a.apply-button"),
     (By.CSS_SELECTOR, "#applyButton"),
     (By.CSS_SELECTOR, "button[data-ga-track*='apply']"),
+    (By.XPATH, "//button[normalize-space()='Easy Apply']"),
+    (By.XPATH, "//a[normalize-space()='Easy Apply']"),
     (By.XPATH, "//button[normalize-space()='Apply']"),
     (By.XPATH, "//button[normalize-space()='Apply Now']"),
     (By.XPATH, "//a[normalize-space()='Apply']"),
     (By.XPATH, "//a[normalize-space()='Apply Now']"),
+]
+
+# Selectors that indicate an external/redirecting apply (skip these)
+EXTERNAL_APPLY_SELECTORS = [
+    (By.XPATH, "//button[contains(text(),'Apply on company')]"),
+    (By.XPATH, "//a[contains(text(),'Apply on company')]"),
+    (By.XPATH, "//button[contains(text(),'Apply on')]"),
+    (By.CSS_SELECTOR, "button.external-apply"),
+    (By.CSS_SELECTOR, ".apply-redirect-btn"),
 ]
 
 
@@ -84,6 +105,37 @@ def _find_text(element, selectors: list[str]) -> str:
     return "", None
 
 
+def _has_easy_apply_badge(job_card) -> bool:
+    """Return True if the job card contains an Easy Apply badge."""
+    for sel in EASY_APPLY_CARD_SELECTORS:
+        try:
+            elements = job_card.find_elements(By.CSS_SELECTOR, sel)
+            if elements:
+                return True
+        except Exception:
+            continue
+    # Fallback: scan card text for "easy apply" mention
+    try:
+        card_text = job_card.text.lower()
+        if "easy apply" in card_text:
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def _is_external_apply(driver) -> bool:
+    """Return True if the detail page only shows an external/redirect apply button."""
+    for locator in EXTERNAL_APPLY_SELECTORS:
+        try:
+            elements = driver.find_elements(*locator)
+            if elements:
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def _find_apply_button(driver):
     """Try each apply-button selector and return the first clickable element."""
     for locator in APPLY_BTN_SELECTORS:
@@ -97,7 +149,10 @@ def _find_apply_button(driver):
 
 def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> dict:
     """
-    Run automated job search and application on Naukri Gulf.
+    Run automated job search and Easy Apply on Naukri Gulf.
+
+    Only submits applications where Naukri Gulf's one-click Easy Apply is
+    available — skips any listing that redirects to an external company site.
 
     Args:
         max_applications: Maximum number of applications to submit in this run
@@ -111,6 +166,7 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
         "applications_attempted": 0,
         "applications_successful": 0,
         "applications_failed": 0,
+        "skipped_no_easy_apply": 0,
         "errors": [],
         "jobs_found": [],
     }
@@ -155,6 +211,12 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
                         break
 
                     try:
+                        # ── Easy Apply pre-filter on the listing card ──────────
+                        if not _has_easy_apply_badge(job_card):
+                            print("[NAUKRI RUNNER] Skipping — no Easy Apply badge on card")
+                            results["skipped_no_easy_apply"] += 1
+                            continue
+
                         # Extract job title + URL
                         job_title, title_elem = _find_text(job_card, JOB_TITLE_SELECTORS)
                         if not job_title or not title_elem:
@@ -168,7 +230,7 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
                         if not company:
                             company = "Unknown"
 
-                        print(f"[NAUKRI RUNNER] Found job: {job_title} at {company}")
+                        print(f"[NAUKRI RUNNER] Easy Apply job: {job_title} at {company}")
                         results["jobs_found"].append({
                             "job_title": job_title,
                             "company": company,
@@ -185,6 +247,18 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
                         # Switch to new tab if opened
                         if len(driver.window_handles) > 1:
                             driver.switch_to.window(driver.window_handles[-1])
+
+                        # ── Skip listings that only have external apply ────────
+                        if _is_external_apply(driver):
+                            print(f"[NAUKRI RUNNER] Skipping — external apply site for: {job_title}")
+                            results["skipped_no_easy_apply"] += 1
+                            if len(driver.window_handles) > 1:
+                                driver.close()
+                                driver.switch_to.window(driver.window_handles[0])
+                            else:
+                                driver.back()
+                                time.sleep(2)
+                            continue
 
                         # Step 6: Find Apply button using multiple locators
                         apply_btn, locator = _find_apply_button(driver)
@@ -223,6 +297,7 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
                                 print(f"[NAUKRI RUNNER] FAILED: {result.message}")
                         else:
                             print(f"[NAUKRI RUNNER] No apply button found for: {job_title}")
+                            results["skipped_no_easy_apply"] += 1
 
                         # Close extra tab and return to search results
                         if len(driver.window_handles) > 1:
@@ -259,12 +334,13 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
 
 
 if __name__ == "__main__":
-    print("Starting Naukri Gulf job search runner...")
-    result = run_naukri_job_search(max_applications=3, headless=False)
+    print("Starting Naukri Gulf Easy Apply job runner...")
+    result = run_naukri_job_search(max_applications=10, headless=False)
     print("\n=== RUN SUMMARY ===")
     print(f"Applications attempted:  {result['applications_attempted']}")
     print(f"Applications successful: {result['applications_successful']}")
     print(f"Applications failed:     {result['applications_failed']}")
+    print(f"Skipped (no Easy Apply): {result['skipped_no_easy_apply']}")
     print(f"Jobs found:              {len(result['jobs_found'])}")
     if result["errors"]:
         print(f"Errors: {result['errors']}")

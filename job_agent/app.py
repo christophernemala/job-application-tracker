@@ -148,9 +148,9 @@ def run_agent():
         return jsonify({"error": "Agent is already running"}), 409
 
     payload = request.get_json(silent=True) or {}
-    max_applications = int(payload.get("max_applications", 5))
-    if not 1 <= max_applications <= 20:
-        return jsonify({"error": "max_applications must be between 1 and 20"}), 400
+    max_applications = int(payload.get("max_applications", 10))
+    if not 1 <= max_applications <= 50:
+        return jsonify({"error": "max_applications must be between 1 and 50"}), 400
 
     _agent_state["running"] = True
     _agent_state["last_result"] = None
