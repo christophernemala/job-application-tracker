@@ -25,3 +25,10 @@ Thumbs.db
 
 # Pytest
 .pytest_cache/
+
+# Pipeline outputs (generated at runtime)
+outputs/tracker.db
+outputs/tailored_cvs/
+outputs/application_queue/
+logs/*.log
+.env

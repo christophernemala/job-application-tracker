@@ -1,0 +1,17 @@
+# ============================================================
+# Crontab example — run the job pipeline daily at 07:00 UTC
+#
+# To install:
+#   crontab -e
+#   Paste the line below (adjust paths to match your system)
+#
+# To view current crontab:
+#   crontab -l
+# ============================================================
+
+# Run full pipeline at 07:00 UTC every day
+0 7 * * * cd /home/user/job-application-tracker && /usr/bin/python3 -m pipeline.cli run >> /home/user/job-application-tracker/logs/cron.log 2>&1
+
+# Alternative: use the built-in scheduler (blocking process)
+# Recommended for Docker / systemd deployments
+# @reboot cd /home/user/job-application-tracker && /usr/bin/python3 -m pipeline.scheduler.runner >> /home/user/job-application-tracker/logs/scheduler.log 2>&1

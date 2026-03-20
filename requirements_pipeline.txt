@@ -1,0 +1,18 @@
+# Core pipeline dependencies
+# Install with: pip install -r requirements_pipeline.txt
+
+# Existing (already in requirements.txt)
+openai>=1.62.0
+flask>=3.1.0
+pytest>=8.3.4
+gunicorn>=21.2.0
+
+# Pipeline additions
+apify-client>=1.8.0      # Apify actor runner
+click>=8.1.3             # CLI framework
+python-dotenv>=1.0.0     # .env file loading
+schedule>=1.2.0          # Daily scheduler
+
+# Optional — for browser-assisted apply automation
+# playwright>=1.40.0
+# selenium>=4.28.1       # already in requirements.txt
