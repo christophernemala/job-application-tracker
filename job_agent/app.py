@@ -170,6 +170,40 @@ def run_automation():
     return jsonify({"status": "started", "platform": platform, "max_applications": max_apps}), 202
 
 
+@app.route("/api/scrape", methods=["POST"])
+@requires_auth
+def run_apify_scrape():
+    """Scrape jobs via Apify (no browser needed, much faster).
+
+    JSON body options:
+        platform: "linkedin", "naukri", or "all" (default)
+        max_results: int (default 50)
+    """
+    if _automation_status["running"]:
+        return jsonify({"error": "Automation is already running"}), 409
+
+    payload = request.get_json(silent=True) or {}
+    platform = payload.get("platform", "all").lower()
+    max_results = min(int(payload.get("max_results", 50)), 200)
+
+    def _run():
+        with _automation_lock:
+            _automation_status["running"] = True
+            _automation_status["last_result"] = None
+            try:
+                from job_agent.apify_runner import run_apify_scrape as do_scrape
+                result = do_scrape(platform=platform, max_results=max_results)
+                _automation_status["last_result"] = result
+            except Exception as exc:
+                logging.getLogger(__name__).error("Apify scrape failed: %s", exc)
+                _automation_status["last_result"] = {"error": str(exc)}
+            finally:
+                _automation_status["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "mode": "apify", "platform": platform, "max_results": max_results}), 202
+
+
 @app.route("/api/automation-status")
 @requires_auth
 def automation_status():
