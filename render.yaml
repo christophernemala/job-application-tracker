@@ -4,12 +4,7 @@ services:
     name: job-application-tracker
     runtime: python
     plan: free
-    buildCommand: |
-      pip install -r requirements.txt
-      apt-get update && apt-get install -y wget gnupg2
-      wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-      echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-      apt-get update && apt-get install -y google-chrome-stable
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn job_agent.app:app
     envVars:
       - key: PYTHON_VERSION
