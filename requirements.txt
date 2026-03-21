@@ -4,3 +4,4 @@ openai==1.62.0
 pytest==8.3.4
 webdriver-manager==4.0.2
 gunicorn==21.2.0
+requests>=2.31.0
