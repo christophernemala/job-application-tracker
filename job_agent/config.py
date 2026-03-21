@@ -175,6 +175,11 @@ NAUKRI_GULF_CREDENTIALS = {
     "password": os.getenv("NAUKRI_GULF_PASSWORD", ""),
 }
 
+LINKEDIN_CREDENTIALS = {
+    "email": os.getenv("LINKEDIN_EMAIL", USER_PROFILE["email"]),
+    "password": os.getenv("LINKEDIN_PASSWORD", ""),
+}
+
 # =============================================================================
 # JOB SEARCH PREFERENCES
 # Target: Senior AR / Credit & Collections roles from Senior to Assistant Manager
@@ -256,6 +261,17 @@ def get_naukri_gulf_credentials() -> tuple[str, str]:
     return email, password
 
 
+def get_linkedin_credentials() -> tuple[str, str]:
+    """Return configured LinkedIn credentials and validate they exist."""
+    email = LINKEDIN_CREDENTIALS.get("email", "").strip()
+    password = LINKEDIN_CREDENTIALS.get("password", "")
+    if not email or not password:
+        raise RuntimeError(
+            "LinkedIn credentials are missing. Set LINKEDIN_EMAIL and LINKEDIN_PASSWORD in environment or job_agent/.env"
+        )
+    return email, password
+
+
 def get_runtime_config_snapshot() -> dict[str, Any]:
     """Safe config snapshot for diagnostics without exposing secrets."""
     return {
@@ -263,4 +279,6 @@ def get_runtime_config_snapshot() -> dict[str, Any]:
         "job_search_preferences": JOB_SEARCH_PREFERENCES,
         "naukri_gulf_email": NAUKRI_GULF_CREDENTIALS.get("email", ""),
         "naukri_gulf_password_set": bool(NAUKRI_GULF_CREDENTIALS.get("password")),
+        "linkedin_email": LINKEDIN_CREDENTIALS.get("email", ""),
+        "linkedin_password_set": bool(LINKEDIN_CREDENTIALS.get("password")),
     }

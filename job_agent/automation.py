@@ -24,7 +24,7 @@ try:
 except ImportError:
     WEBDRIVER_MANAGER_AVAILABLE = False
 
-from job_agent.config import get_naukri_gulf_credentials
+from job_agent.config import get_linkedin_credentials, get_naukri_gulf_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +129,60 @@ def authenticate_naukri_gulf_with_config(headless: bool = True) -> webdriver.Chr
     """Authenticate using configured Naukri Gulf credentials from config.py."""
     email, password = get_naukri_gulf_credentials()
     return authenticate_naukri_gulf(email=email, password=password, headless=headless)
+
+
+def authenticate_linkedin(email: str, password: str, headless: bool = True) -> webdriver.Chrome:
+    """Login to LinkedIn and return the authenticated driver."""
+    driver = setup_selenium_driver(headless=headless)
+    driver.get("https://www.linkedin.com/login")
+
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "username"))
+        )
+        driver.find_element(By.ID, "username").send_keys(email)
+        driver.find_element(By.ID, "password").send_keys(password)
+        driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+
+        logger.info("LinkedIn login submitted for %s", email)
+
+        # Wait for feed or security challenge
+        time.sleep(5)
+        current = driver.current_url
+
+        if "/checkpoint" in current or "/challenge" in current:
+            logger.warning("LinkedIn security challenge detected — manual verification may be needed")
+            screenshot_path = str(_DATA_DIR / "linkedin_challenge.png")
+            driver.save_screenshot(screenshot_path)
+            driver.quit()
+            raise RuntimeError("LinkedIn security challenge detected. Log in manually first to trust this device.")
+
+        # Verify we're logged in
+        if "/feed" in current or "/mynetwork" in current or "/in/" in current:
+            logger.info("LinkedIn authentication successful")
+            return driver
+
+        # Try waiting for nav element
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".global-nav__primary-items, .feed-identity-module"))
+        )
+        logger.info("LinkedIn authentication successful")
+        return driver
+
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        screenshot_path = str(_DATA_DIR / "linkedin_auth_failure.png")
+        driver.save_screenshot(screenshot_path)
+        logger.error("LinkedIn auth failed: %s", exc)
+        driver.quit()
+        raise RuntimeError(f"LinkedIn authentication failed: {exc}") from exc
+
+
+def authenticate_linkedin_with_config(headless: bool = True) -> webdriver.Chrome:
+    """Authenticate using configured LinkedIn credentials from config.py."""
+    email, password = get_linkedin_credentials()
+    return authenticate_linkedin(email=email, password=password, headless=headless)
 
 
 def verify_application_submitted(driver: webdriver.Chrome, job_title: str, company: str) -> bool:

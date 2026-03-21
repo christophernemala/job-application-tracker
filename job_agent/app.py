@@ -129,20 +129,37 @@ _automation_status = {"running": False, "last_result": None}
 @app.route("/api/run-automation", methods=["POST"])
 @requires_auth
 def run_automation():
-    """Trigger the Naukri Gulf job search automation in a background thread."""
+    """Trigger job search automation in a background thread.
+
+    JSON body options:
+        platform: "naukri" (default), "linkedin", or "all"
+        max_applications: int (default 5, max 20)
+    """
     if _automation_status["running"]:
         return jsonify({"error": "Automation is already running"}), 409
 
     payload = request.get_json(silent=True) or {}
     max_apps = min(int(payload.get("max_applications", 5)), 20)
+    platform = payload.get("platform", "naukri").lower()
 
     def _run():
         with _automation_lock:
             _automation_status["running"] = True
+            _automation_status["last_result"] = None
+            combined = []
             try:
-                from job_agent.naukri_runner import run_naukri_job_search
-                result = run_naukri_job_search(max_applications=max_apps, headless=True)
-                _automation_status["last_result"] = result
+                if platform in ("naukri", "all"):
+                    from job_agent.naukri_runner import run_naukri_job_search
+                    combined.append(run_naukri_job_search(max_applications=max_apps, headless=True))
+
+                if platform in ("linkedin", "all"):
+                    from job_agent.linkedin_runner import run_linkedin_job_search
+                    combined.append(run_linkedin_job_search(max_applications=max_apps, headless=True))
+
+                if len(combined) == 1:
+                    _automation_status["last_result"] = combined[0]
+                else:
+                    _automation_status["last_result"] = {"runs": combined}
             except Exception as exc:
                 logging.getLogger(__name__).error("Automation failed: %s", exc)
                 _automation_status["last_result"] = {"error": str(exc)}
@@ -150,7 +167,7 @@ def run_automation():
                 _automation_status["running"] = False
 
     threading.Thread(target=_run, daemon=True).start()
-    return jsonify({"status": "started", "max_applications": max_apps}), 202
+    return jsonify({"status": "started", "platform": platform, "max_applications": max_apps}), 202
 
 
 @app.route("/api/automation-status")
