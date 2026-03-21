@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import os
+import threading
 from functools import wraps
 from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
 
@@ -118,6 +120,44 @@ def create_application():
         screenshot_path=payload.get("screenshot_path"),
     )
     return jsonify({"id": app_id}), 201
+
+
+_automation_lock = threading.Lock()
+_automation_status = {"running": False, "last_result": None}
+
+
+@app.route("/api/run-automation", methods=["POST"])
+@requires_auth
+def run_automation():
+    """Trigger the Naukri Gulf job search automation in a background thread."""
+    if _automation_status["running"]:
+        return jsonify({"error": "Automation is already running"}), 409
+
+    payload = request.get_json(silent=True) or {}
+    max_apps = min(int(payload.get("max_applications", 5)), 20)
+
+    def _run():
+        with _automation_lock:
+            _automation_status["running"] = True
+            try:
+                from job_agent.naukri_runner import run_naukri_job_search
+                result = run_naukri_job_search(max_applications=max_apps, headless=True)
+                _automation_status["last_result"] = result
+            except Exception as exc:
+                logging.getLogger(__name__).error("Automation failed: %s", exc)
+                _automation_status["last_result"] = {"error": str(exc)}
+            finally:
+                _automation_status["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "max_applications": max_apps}), 202
+
+
+@app.route("/api/automation-status")
+@requires_auth
+def automation_status():
+    """Check the current automation run status."""
+    return jsonify(_automation_status)
 
 
 if __name__ == "__main__":
