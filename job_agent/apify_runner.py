@@ -15,6 +15,7 @@ import requests
 
 from job_agent.config import JOB_SEARCH_PREFERENCES
 from job_agent.database import save_application
+from job_agent.slack_notifier import notify_error, notify_scrape_results
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +146,10 @@ def scrape_linkedin_jobs(max_results: int = 50) -> dict:
     except Exception as e:
         results["errors"].append(str(e))
         logger.error("LinkedIn Apify scrape failed: %s", e)
+        notify_error(str(e), platform="LinkedIn (Apify)")
 
     results["end_time"] = datetime.now().isoformat()
+    notify_scrape_results(results)
     return results
 
 
@@ -209,8 +212,10 @@ def scrape_naukri_jobs(max_results: int = 50) -> dict:
     except Exception as e:
         results["errors"].append(str(e))
         logger.error("Naukri Apify scrape failed: %s", e)
+        notify_error(str(e), platform="Naukri Gulf (Apify)")
 
     results["end_time"] = datetime.now().isoformat()
+    notify_scrape_results(results)
     return results
 
 

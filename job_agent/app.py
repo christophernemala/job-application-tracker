@@ -211,6 +211,21 @@ def automation_status():
     return jsonify(_automation_status)
 
 
+@app.route("/api/slack/test", methods=["POST"])
+@requires_auth
+def slack_test():
+    """Send a test message to Slack to verify the webhook is configured."""
+    from job_agent.slack_notifier import _post_to_slack, SLACK_WEBHOOK_URL
+    if not SLACK_WEBHOOK_URL:
+        return jsonify({"error": "SLACK_WEBHOOK_URL is not configured"}), 400
+    ok = _post_to_slack({
+        "text": ":white_check_mark: Slack integration is working for Job Application Tracker!"
+    })
+    if ok:
+        return jsonify({"status": "sent"})
+    return jsonify({"error": "Webhook request failed — check logs"}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
     app.run(debug=False, host="0.0.0.0", port=port)
