@@ -155,6 +155,47 @@ def update_application_notes(application_id: int, notes: str) -> bool:
         return result.rowcount > 0
 
 
+def save_job(
+    *,
+    job_title: str,
+    company: str,
+    platform: str,
+    job_url: str,
+    description: str | None = None,
+    location: str | None = None,
+    salary_range: str | None = None,
+) -> int | None:
+    """Insert a discovered job. Returns new row id, or None if URL already exists."""
+    with get_connection() as conn:
+        try:
+            cursor = conn.execute(
+                """
+                INSERT INTO jobs (job_title, company, platform, job_url, description, location, salary_range)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (job_title, company, platform, job_url, description, location, salary_range),
+            )
+            return int(cursor.lastrowid)
+        except sqlite3.IntegrityError:
+            return None  # duplicate job_url
+
+
+def get_pending_jobs(limit: int = 20) -> list[dict[str, Any]]:
+    """Return jobs that have not been applied to yet, oldest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM jobs WHERE applied = 0 ORDER BY discovered_date ASC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def mark_job_applied(job_id: int) -> None:
+    """Mark a job row as applied."""
+    with get_connection() as conn:
+        conn.execute("UPDATE jobs SET applied = 1 WHERE id = ?", (job_id,))
+
+
 def log_event(action: str, status: str, error_message: str | None = None, job_id: int | None = None) -> None:
     with get_connection() as conn:
         conn.execute(

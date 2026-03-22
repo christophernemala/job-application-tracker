@@ -9,9 +9,12 @@ from flask import Flask, jsonify, render_template, request, Response, session, r
 from job_agent.config import get_runtime_config_snapshot
 from job_agent.database import (
     get_application,
+    get_pending_jobs,
     init_database,
     list_applications,
+    mark_job_applied,
     save_application,
+    save_job,
     update_application_notes,
 )
 
@@ -224,6 +227,99 @@ def slack_test():
     if ok:
         return jsonify({"status": "sent"})
     return jsonify({"error": "Webhook request failed — check logs"}), 500
+
+
+@app.route("/api/webhook/apify", methods=["POST"])
+def apify_webhook():
+    """Receive Apify webhook, persist scraped jobs, and trigger auto-apply.
+
+    Apify calls this URL when an actor run finishes (configure in Apify console
+    under Actor → Settings → Webhooks, set URL to <your-host>/api/webhook/apify).
+
+    The webhook payload contains a defaultDatasetId; we fetch items from the
+    Apify API and save them to the jobs table, then kick off auto-apply.
+
+    Alternatively, POST a JSON array of job objects directly for testing:
+        [{"job_title": "...", "company": "...", "job_url": "...", "platform": "..."}]
+    """
+    payload = request.get_json(silent=True) or {}
+
+    jobs_saved = 0
+    items: list[dict] = []
+
+    # Direct array of job objects (testing / custom pipeline)
+    if isinstance(payload, list):
+        items = payload
+
+    # Standard Apify webhook envelope — fetch dataset from Apify API
+    else:
+        dataset_id = (
+            payload.get("resource", {}).get("defaultDatasetId")
+            or payload.get("eventData", {}).get("defaultDatasetId")
+        )
+        if dataset_id:
+            import os, urllib.request, json as _json
+            token = os.getenv("APIFY_API_TOKEN", "")
+            url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?limit=200"
+            if token:
+                url += f"&token={token}"
+            try:
+                with urllib.request.urlopen(url, timeout=20) as resp:
+                    items = _json.loads(resp.read())
+            except Exception as exc:
+                logging.getLogger(__name__).error("Failed to fetch Apify dataset %s: %s", dataset_id, exc)
+                return jsonify({"error": f"Dataset fetch failed: {exc}"}), 500
+
+    for item in items:
+        job_title = item.get("title") or item.get("jobTitle") or item.get("job_title") or ""
+        company = item.get("companyName") or item.get("company") or ""
+        job_url = item.get("url") or item.get("jobUrl") or item.get("job_url") or ""
+        platform = item.get("platform") or "Apify"
+        description = item.get("description") or item.get("jobDescription") or ""
+        location = item.get("location") or item.get("jobLocation") or ""
+        salary = item.get("salary") or item.get("salaryRange") or item.get("salary_range") or ""
+
+        if not job_title:
+            continue
+
+        row_id = save_job(
+            job_title=job_title,
+            company=company,
+            platform=platform,
+            job_url=job_url,
+            description=description,
+            location=location,
+            salary_range=salary,
+        )
+        if row_id:
+            jobs_saved += 1
+
+    # Fire auto-apply in background if any new jobs were saved
+    if jobs_saved and not _automation_status["running"]:
+        def _auto_apply():
+            with _automation_lock:
+                _automation_status["running"] = True
+                try:
+                    from job_agent.naukri_runner import run_naukri_job_search
+                    _automation_status["last_result"] = run_naukri_job_search(
+                        max_applications=jobs_saved, headless=True
+                    )
+                except Exception as exc:
+                    logging.getLogger(__name__).error("Auto-apply failed: %s", exc)
+                    _automation_status["last_result"] = {"error": str(exc)}
+                finally:
+                    _automation_status["running"] = False
+
+        threading.Thread(target=_auto_apply, daemon=True).start()
+
+    return jsonify({"jobs_saved": jobs_saved, "auto_apply_triggered": jobs_saved > 0}), 200
+
+
+@app.route("/api/jobs/pending")
+@requires_auth
+def pending_jobs():
+    """List jobs scraped by Apify that have not been applied to yet."""
+    return jsonify(get_pending_jobs(limit=100))
 
 
 if __name__ == "__main__":

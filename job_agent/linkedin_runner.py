@@ -12,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from job_agent.automation import authenticate_linkedin_with_config
 from job_agent.config import JOB_SEARCH_PREFERENCES
 from job_agent.database import save_application
+from job_agent.slack_notifier import notify_application_status, notify_run_summary
 
 logger = logging.getLogger(__name__)
 
@@ -269,9 +270,15 @@ def run_linkedin_job_search(max_applications: int = 5, headless: bool = True) ->
                         )
                         results["applications_successful"] += 1
                         logger.info("Applied to: %s at %s", job_title, company)
+                        notify_application_status(
+                            job_title, company, "LinkedIn", "applied", job_url
+                        )
                     else:
                         results["applications_skipped"] += 1
                         logger.info("Skipped %s: %s", job_title, message)
+                        notify_application_status(
+                            job_title, company, "LinkedIn", "skipped", job_url
+                        )
 
                     time.sleep(1)
 
@@ -293,6 +300,13 @@ def run_linkedin_job_search(max_applications: int = 5, headless: bool = True) ->
             except Exception:
                 pass
         results["end_time"] = datetime.now().isoformat()
+        notify_run_summary(
+            platform="LinkedIn",
+            attempted=results["applications_attempted"],
+            successful=results["applications_successful"],
+            failed=results["applications_failed"],
+            errors=results["errors"] or None,
+        )
 
     return results
 

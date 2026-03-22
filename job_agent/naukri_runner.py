@@ -12,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from job_agent.automation import authenticate_naukri_gulf_with_config
 from job_agent.config import JOB_SEARCH_PREFERENCES
 from job_agent.database import save_application
+from job_agent.slack_notifier import notify_application_status, notify_run_summary
 
 logger = logging.getLogger(__name__)
 
@@ -127,10 +128,16 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
                                 )
                                 results["applications_successful"] += 1
                                 logger.info("Successfully applied to: %s", job_title)
+                                notify_application_status(
+                                    job_title, company, "Naukri Gulf", "applied", job_url
+                                )
                             except Exception as apply_error:
                                 results["applications_failed"] += 1
                                 results["errors"].append(f"Apply failed for {job_title}: {str(apply_error)}")
                                 logger.error("Apply failed for %s: %s", job_title, apply_error)
+                                notify_application_status(
+                                    job_title, company, "Naukri Gulf", "failed", job_url
+                                )
                         else:
                             logger.info("No apply button found for: %s", job_title)
 
@@ -165,6 +172,13 @@ def run_naukri_job_search(max_applications: int = 5, headless: bool = True) -> d
             except Exception:
                 pass
         results["end_time"] = datetime.now().isoformat()
+        notify_run_summary(
+            platform="Naukri Gulf",
+            attempted=results["applications_attempted"],
+            successful=results["applications_successful"],
+            failed=results["applications_failed"],
+            errors=results["errors"] or None,
+        )
 
     return results
 

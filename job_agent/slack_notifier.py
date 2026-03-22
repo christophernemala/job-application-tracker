@@ -1,11 +1,16 @@
 """Slack notification helper.
 
-Posts job-scraping results from Apify to a Slack channel via an
-Incoming Webhook URL (set SLACK_WEBHOOK_URL in your .env).
+Sends per-application status updates to a Slack channel via an
+Incoming Webhook (set SLACK_WEBHOOK_URL in your .env).
+
+NOTE: Apify → Slack scrape-summary notifications are handled by
+Slack's native Apify app integration. This module only covers
+application-level status updates posted by the job agent.
 
 Usage:
-    from job_agent.slack_notifier import notify_scrape_results
-    notify_scrape_results(results)
+    from job_agent.slack_notifier import notify_application_status
+    notify_application_status("Accounts Receivable Specialist", "Acme Corp",
+                               "LinkedIn", "applied", "https://...")
 """
 from __future__ import annotations
 
@@ -19,9 +24,19 @@ logger = logging.getLogger(__name__)
 
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 
+# Status → emoji map
+_STATUS_ICON = {
+    "applied": ":white_check_mark:",
+    "failed": ":x:",
+    "skipped": ":next_track_button:",
+    "interview": ":calendar:",
+    "offer": ":tada:",
+    "rejected": ":no_entry_sign:",
+}
+
 
 def _post_to_slack(payload: dict) -> bool:
-    """Send a JSON payload to the Slack webhook. Returns True on success."""
+    """POST a JSON payload to the configured Slack webhook. Returns True on success."""
     if not SLACK_WEBHOOK_URL:
         logger.warning("SLACK_WEBHOOK_URL not set — Slack notification skipped.")
         return False
@@ -36,7 +51,6 @@ def _post_to_slack(payload: dict) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             if resp.status == 200:
-                logger.info("Slack notification sent successfully.")
                 return True
             logger.error("Slack webhook returned HTTP %s", resp.status)
             return False
@@ -45,62 +59,64 @@ def _post_to_slack(payload: dict) -> bool:
         return False
 
 
-def notify_scrape_results(results: dict[str, Any]) -> bool:
-    """Format Apify scrape results and post a summary to Slack.
+def notify_application_status(
+    job_title: str,
+    company: str,
+    platform: str,
+    status: str,
+    job_url: str = "",
+) -> bool:
+    """Post a single job-application status update to Slack.
 
-    Handles both single-platform results and combined {"runs": [...]} results.
+    Args:
+        job_title: Title of the role applied to
+        company:   Employer name
+        platform:  Source platform (e.g. "Naukri Gulf", "LinkedIn")
+        status:    One of: applied, failed, skipped, interview, offer, rejected
+        job_url:   Direct link to the job listing (optional)
     """
-    runs: list[dict] = results.get("runs", [results])
+    icon = _STATUS_ICON.get(status.lower(), ":information_source:")
+    label = status.capitalize()
 
-    blocks: list[dict] = [
-        {
-            "type": "header",
-            "text": {"type": "plain_text", "text": ":briefcase: Job Scrape Complete", "emoji": True},
-        }
-    ]
+    title_text = f"<{job_url}|{job_title}>" if job_url else job_title
+    body = f"{icon} *{label}* — {title_text}\n*Company:* {company}   |   *Platform:* {platform}"
 
-    for run in runs:
-        platform = run.get("platform", "Unknown platform")
-        jobs_found = run.get("jobs_found", 0)
-        jobs_saved = run.get("jobs_saved", 0)
-        errors = run.get("errors", [])
-
-        status_icon = ":white_check_mark:" if not errors else ":warning:"
-        text_lines = [
-            f"{status_icon} *{platform}*",
-            f"• Found: *{jobs_found}* listings",
-            f"• Saved: *{jobs_saved}* to database",
+    payload = {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": body}},
         ]
-        if errors:
-            text_lines.append(f"• Errors: {len(errors)} (see logs)")
+    }
+    return _post_to_slack(payload)
 
-        blocks.append(
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "\n".join(text_lines)},
-            }
-        )
 
-    blocks.append({"type": "divider"})
-    blocks.append(
-        {
-            "type": "context",
-            "elements": [
-                {
-                    "type": "mrkdwn",
-                    "text": "Job Application Tracker • Apify Scraper",
-                }
-            ],
-        }
-    )
+def notify_run_summary(
+    platform: str,
+    attempted: int,
+    successful: int,
+    failed: int,
+    errors: list[str] | None = None,
+) -> bool:
+    """Post an end-of-run summary block to Slack."""
+    icon = ":white_check_mark:" if not errors else ":warning:"
+    lines = [
+        f"{icon} *{platform} run finished*",
+        f"• Attempted: *{attempted}*   Successful: *{successful}*   Failed: *{failed}*",
+    ]
+    if errors:
+        lines.append(f"• {len(errors)} error(s) — check logs")
 
-    payload = {"blocks": blocks}
+    payload = {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "\n".join(lines)}},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": "Job Application Tracker"}]},
+        ]
+    }
     return _post_to_slack(payload)
 
 
 def notify_error(message: str, platform: str = "") -> bool:
     """Post a simple error alert to Slack."""
-    header = f":x: Scrape Failed{f' — {platform}' if platform else ''}"
+    header = f":x: Error{f' — {platform}' if platform else ''}"
     payload = {
         "blocks": [
             {
