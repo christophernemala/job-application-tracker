@@ -4,13 +4,8 @@ services:
     name: job-application-tracker
     runtime: python
     plan: free
-    buildCommand: |
-      pip install -r requirements.txt
-      apt-get update && apt-get install -y wget gnupg2
-      wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-      echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
-      apt-get update && apt-get install -y google-chrome-stable
-    startCommand: gunicorn job_agent.app:app
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn job_agent.app:app --workers 1 --threads 2 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.10"
@@ -22,7 +17,13 @@ services:
         value: "Christopher Nemala"
       - key: JOB_AGENT_EMAIL
         value: "christophernemala@gmail.com"
+      - key: JOB_AGENT_PHONE
+        value: "+971-565839277"
+      - key: JOB_AGENT_LOCATION
+        value: "Dubai, UAE"
       - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: FLASK_SECRET_KEY
         sync: false
       - key: LINKEDIN_EMAIL
         sync: false
@@ -32,7 +33,7 @@ services:
         sync: false
       - key: APIFY_API_TOKEN
         sync: false
-      - key: JOB_AGENT_PHONE
-        value: "+971-565839277"
-      - key: JOB_AGENT_LOCATION
-        value: "Dubai, UAE"
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false

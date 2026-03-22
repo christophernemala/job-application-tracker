@@ -233,15 +233,18 @@ def slack_test():
 def apify_webhook():
     """Receive Apify webhook, persist scraped jobs, and trigger auto-apply.
 
-    Apify calls this URL when an actor run finishes (configure in Apify console
-    under Actor → Settings → Webhooks, set URL to <your-host>/api/webhook/apify).
+    Apify calls this URL when an actor run finishes. Configure in Apify console:
+      Actor → Settings → Webhooks
+      URL: https://<your-render-host>/api/webhook/apify?token=<WEBHOOK_SECRET>
+      Event: ACTOR.RUN.SUCCEEDED
 
-    The webhook payload contains a defaultDatasetId; we fetch items from the
-    Apify API and save them to the jobs table, then kick off auto-apply.
-
-    Alternatively, POST a JSON array of job objects directly for testing:
-        [{"job_title": "...", "company": "...", "job_url": "...", "platform": "..."}]
+    Set WEBHOOK_SECRET env var on Render to match the token in the URL.
     """
+    # Verify shared secret so only Apify (and you) can trigger this
+    expected = os.getenv("WEBHOOK_SECRET", "")
+    if expected and request.args.get("token") != expected:
+        return jsonify({"error": "Unauthorized"}), 401
+
     payload = request.get_json(silent=True) or {}
 
     jobs_saved = 0
