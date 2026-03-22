@@ -9,10 +9,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.10"
-      - key: NAUKRI_GULF_EMAIL
-        sync: false
-      - key: NAUKRI_GULF_PASSWORD
-        sync: false
       - key: JOB_AGENT_NAME
         value: "Christopher Nemala"
       - key: JOB_AGENT_EMAIL
@@ -21,9 +17,18 @@ services:
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
         value: "Dubai, UAE"
-      - key: DASHBOARD_PASSWORD
-        sync: false
+      - key: DASHBOARD_USERNAME
+        value: "admin"
       - key: FLASK_SECRET_KEY
+        value: "job-tracker-render-2024"
+      - key: WEBHOOK_SECRET
+        value: "apify-webhook-secret-2024"
+      # Secrets — set these manually in Render dashboard
+      - key: NAUKRI_GULF_EMAIL
+        sync: false
+      - key: NAUKRI_GULF_PASSWORD
+        sync: false
+      - key: DASHBOARD_PASSWORD
         sync: false
       - key: LINKEDIN_EMAIL
         sync: false
@@ -34,6 +39,4 @@ services:
       - key: APIFY_API_TOKEN
         sync: false
       - key: SLACK_WEBHOOK_URL
-        sync: false
-      - key: WEBHOOK_SECRET
         sync: false
