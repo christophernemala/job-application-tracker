@@ -45,6 +45,18 @@ def requires_auth(f):
     return decorated
 
 
+@app.route("/health")
+def health():
+    """Public health check (no auth required)."""
+    return jsonify({
+        "status": "ok",
+        "dashboard_auth_configured": bool(DASHBOARD_USER and DASHBOARD_PASSWORD),
+        "apify_token_set": bool(os.getenv("APIFY_API_TOKEN")),
+        "linkedin_email_set": bool(os.getenv("LINKEDIN_EMAIL")),
+        "naukri_email_set": bool(os.getenv("NAUKRI_GULF_EMAIL")),
+    })
+
+
 # Initialize database once at startup, not on every request
 init_database()
 
