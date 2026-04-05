@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 try:
@@ -11,10 +12,43 @@ except ImportError:  # pragma: no cover
     OpenAI = None
 
 
+def _get_provider_settings() -> dict[str, str]:
+    """Resolve AI provider configuration from environment variables."""
+    groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if groq_api_key:
+        return {
+            "provider": "groq",
+            "api_key": groq_api_key,
+            "base_url": os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
+            "model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        }
+
+    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if openai_api_key:
+        return {
+            "provider": "openai",
+            "api_key": openai_api_key,
+            "base_url": os.getenv("OPENAI_BASE_URL", ""),
+            "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        }
+
+    raise RuntimeError(
+        "No AI provider API key is configured. Set GROQ_API_KEY or OPENAI_API_KEY in the environment or job_agent/.env."
+    )
+
+
 def _get_client() -> Any:
     if OpenAI is None:
         raise RuntimeError("openai package is not installed")
-    return OpenAI()
+    settings = _get_provider_settings()
+    client_kwargs = {"api_key": settings["api_key"]}
+    if settings["base_url"]:
+        client_kwargs["base_url"] = settings["base_url"]
+    return OpenAI(**client_kwargs)
+
+
+def _get_model_name() -> str:
+    return _get_provider_settings()["model"]
 
 
 def _safe_json_loads(text: str) -> dict[str, Any]:
@@ -33,6 +67,7 @@ def _safe_json_loads(text: str) -> dict[str, Any]:
 def generate_cover_letter(job_description: str, company_name: str, job_title: str, user_profile: dict[str, Any]) -> str:
     """Generate a concise personalized cover letter."""
     client = _get_client()
+    model = _get_model_name()
 
     prompt = f"""
 Write a professional, compelling cover letter for this role.
@@ -53,7 +88,7 @@ Constraints:
 """
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[
             {
                 "role": "system",
@@ -70,6 +105,7 @@ Constraints:
 def tailor_resume_to_jjd(job_description: str, master_resume_data: dict[str, Any]) -> dict[str, Any]:
     """Use AI to extract requirements and tailor a resume JSON safely."""
     client = _get_client()
+    model = _get_model_name()
 
     analysis_prompt = f"""
 Analyze the job description and return strict JSON with keys:
@@ -78,7 +114,7 @@ Job description:\n{job_description}
 """
 
     analysis_response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[{"role": "user", "content": analysis_prompt}],
         temperature=0.2,
     )
@@ -91,7 +127,7 @@ Job description:\n{job_description}
     )
 
     tailoring_response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[
             {"role": "system", "content": "You optimize resumes for ATS without fabricating details."},
             {"role": "user", "content": tailoring_prompt},
