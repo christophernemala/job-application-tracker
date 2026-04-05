@@ -4,12 +4,33 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from typing import Any
 
 try:
     from openai import OpenAI
 except ImportError:  # pragma: no cover
     OpenAI = None
+
+
+def _load_local_env() -> None:
+    """Load key=value pairs from local .env if present (no external dependency)."""
+    env_file = Path(__file__).resolve().parent / ".env"
+    if not env_file.exists():
+        return
+
+    for line in env_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        os.environ.setdefault(key.strip(), value)
+
+
+_load_local_env()
 
 
 def _get_provider_settings() -> dict[str, str]:

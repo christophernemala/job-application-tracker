@@ -7,6 +7,7 @@ import threading
 from functools import wraps
 from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
 
+from job_agent.ai_services import _get_provider_settings
 from job_agent.config import get_runtime_config_snapshot
 from job_agent.database import (
     get_application,
@@ -77,10 +78,20 @@ def requires_auth(f):
 @app.route("/health")
 def health():
     """Public health check (no auth required)."""
+    try:
+        ai_settings = _get_provider_settings()
+        ai_provider = ai_settings["provider"]
+        ai_model = ai_settings["model"]
+    except RuntimeError:
+        ai_provider = ""
+        ai_model = ""
+
     return jsonify({
         "status": "ok",
         "dashboard_auth_configured": bool(DASHBOARD_USER and DASHBOARD_PASSWORD),
         "flask_secret_key_configured": bool(os.getenv("FLASK_SECRET_KEY")),
+        "ai_provider": ai_provider,
+        "ai_model": ai_model,
         "apify_token_set": bool(os.getenv("APIFY_API_TOKEN")),
         "linkedin_email_set": bool(os.getenv("LINKEDIN_EMAIL")),
         "naukri_email_set": bool(os.getenv("NAUKRI_GULF_EMAIL")),
