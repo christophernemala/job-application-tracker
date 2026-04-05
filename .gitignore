@@ -18,6 +18,7 @@ job_agent/naukri_session.pkl
 # IDE
 .vscode/
 .idea/
+.claude/
 
 # OS
 .DS_Store
@@ -25,3 +26,6 @@ Thumbs.db
 
 # Pytest
 .pytest_cache/
+
+# Local sibling project / scratch area
+job-agent/

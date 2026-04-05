@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import threading
 from functools import wraps
 from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
@@ -16,18 +17,40 @@ from job_agent.database import (
 )
 
 app = Flask(__name__)
-# Secret key for session management - use env var or fallback
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
 
-# Dashboard credentials - defaults allow login even without env vars set
-# Accept both DASHBOARD_USERNAME (Render env group) and DASHBOARD_USER (legacy)
-DASHBOARD_USER = os.getenv("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USER", "admin")
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+
+def _get_secret_key() -> str:
+    """Use configured secret key, or a process-local fallback for development."""
+    secret_key = os.getenv("FLASK_SECRET_KEY")
+    if secret_key:
+        return secret_key
+
+    logging.getLogger(__name__).warning(
+        "FLASK_SECRET_KEY is not set; using an ephemeral development key."
+    )
+    return secrets.token_urlsafe(32)
+
+
+def _get_dashboard_credentials() -> tuple[str, str]:
+    """Return dashboard credentials without silently falling back to weak defaults."""
+    username = (os.getenv("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USER") or "").strip()
+    password = os.getenv("DASHBOARD_PASSWORD", "")
+    if username and password:
+        return username, password
+
+    logging.getLogger(__name__).warning(
+        "Dashboard credentials are not fully configured; login is disabled until environment variables are set."
+    )
+    return "", ""
+
+
+app.secret_key = _get_secret_key()
+DASHBOARD_USER, DASHBOARD_PASSWORD = _get_dashboard_credentials()
 
 
 def check_auth(username, password):
     """Check if a username/password combination is valid."""
-    return username == DASHBOARD_USER and password == DASHBOARD_PASSWORD
+    return bool(DASHBOARD_USER and DASHBOARD_PASSWORD) and username == DASHBOARD_USER and password == DASHBOARD_PASSWORD
 
 
 def requires_auth(f):
@@ -40,6 +63,12 @@ def requires_auth(f):
         auth = request.authorization
         if auth and check_auth(auth.username, auth.password):
             return f(*args, **kwargs)
+        if request.path.startswith("/api/"):
+            return Response(
+                "Authentication required",
+                401,
+                {"WWW-Authenticate": 'Basic realm="Login Required"'},
+            )
         # Not authenticated - redirect to login page
         return redirect(url_for("login"))
     return decorated
@@ -51,6 +80,7 @@ def health():
     return jsonify({
         "status": "ok",
         "dashboard_auth_configured": bool(DASHBOARD_USER and DASHBOARD_PASSWORD),
+        "flask_secret_key_configured": bool(os.getenv("FLASK_SECRET_KEY")),
         "apify_token_set": bool(os.getenv("APIFY_API_TOKEN")),
         "linkedin_email_set": bool(os.getenv("LINKEDIN_EMAIL")),
         "naukri_email_set": bool(os.getenv("NAUKRI_GULF_EMAIL")),
@@ -63,6 +93,12 @@ init_database()
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    if not (DASHBOARD_USER and DASHBOARD_PASSWORD):
+        return (
+            "Dashboard credentials are not configured. Set DASHBOARD_USERNAME "
+            "and DASHBOARD_PASSWORD environment variables.",
+            503,
+        )
     error = None
     if request.method == "POST":
         username = request.form.get("username", "")

@@ -17,7 +17,11 @@ services:
         value: "Christopher Nemala"
       - key: JOB_AGENT_EMAIL
         value: "christophernemala@gmail.com"
+      - key: DASHBOARD_USERNAME
+        value: "admin"
       - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: FLASK_SECRET_KEY
         sync: false
       - key: LINKEDIN_EMAIL
         sync: false
