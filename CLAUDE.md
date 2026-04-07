@@ -60,3 +60,162 @@ When spawning subagents (Agent/Task tool), the routing block is automatically in
 | `ctx stats` | Call the `ctx_stats` MCP tool and display the full output verbatim |
 | `ctx doctor` | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist |
 | `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
+
+---
+
+# Job Application Tracker — Codebase Guide
+
+## Project Overview
+
+A full-stack job application automation tool for Finance/AR professionals in the UAE. It automates job discovery and applications on Naukri Gulf and LinkedIn, uses OpenAI for AI-generated cover letters and resume tailoring, and provides a dashboard for tracking applications.
+
+## Architecture
+
+```
+job-application-tracker/
+├── job_agent/                 # Python/Flask backend
+│   ├── app.py                 # Flask app: routes, auth, API endpoints
+│   ├── config.py              # User profile & job preferences (single source of truth)
+│   ├── database.py            # SQLite layer (3 tables: applications, jobs, logs)
+│   ├── ai_services.py         # OpenAI integration (cover letters, resume tailoring)
+│   ├── automation.py          # Selenium browser setup & auth helpers
+│   ├── naukri_runner.py       # Naukri Gulf job search + Easy Apply automation
+│   ├── linkedin_runner.py     # LinkedIn job search + Easy Apply automation
+│   ├── apify_runner.py        # Apify API-based scraping (no browser required)
+│   ├── templates/             # Jinja2: dashboard.html, login.html
+│   ├── static/                # CSS/JS frontend assets
+│   └── tests/                 # pytest tests
+│       ├── test_config.py
+│       └── test_database.py
+├── index.html                 # Standalone static UI (localStorage-based, no backend needed)
+├── app.js                     # Client-side JS for static UI
+├── styles.css                 # Shared styles
+├── render.yaml                # Render.com deployment blueprint
+├── vercel.json                # Vercel static hosting config
+├── Procfile                   # gunicorn entrypoint
+└── requirements.txt           # Python dependencies
+```
+
+## Backend: Flask API
+
+**Entry point**: `job_agent/app.py`
+
+### Authentication
+- Session-based login via `/login` (HTML form)
+- HTTP Basic Auth fallback for API clients
+- Decorator: `@requires_auth` applied to all protected routes
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/login` | GET/POST | Form authentication |
+| `/logout` | GET | Clear session |
+| `/` | GET | Serve dashboard HTML |
+| `/api/config` | GET | Runtime config snapshot (diagnostics) |
+| `/api/applications` | POST | Create application record |
+| `/api/application/<id>` | GET | Retrieve application details |
+| `/api/application/<id>/notes` | PUT | Update notes |
+| `/api/run-automation` | POST | Trigger Selenium automation (async, returns 202) |
+| `/api/scrape` | POST | Trigger Apify scraping (async, returns 202) |
+| `/api/automation-status` | GET | Poll automation run status |
+
+Long-running jobs (automation, scraping) execute in **background threads**; poll `/api/automation-status` for results.
+
+## Database Schema (SQLite)
+
+File: `job_agent/job_agent.db` (gitignored, runtime only)
+
+```sql
+applications  -- tracked job applications
+  id, job_title, company, platform, job_url
+  applied_date, status, match_score
+  cover_letter, resume_version, screenshot_path
+  response_received, interview_date, notes
+
+jobs          -- discovered job listings (before applying)
+  id, job_title, company, platform, job_url (UNIQUE)
+  discovered_date, description, salary_range, location
+  applied, match_score, skills_required
+
+logs          -- automation run history
+  id, timestamp, action, status, error_message, job_id
+```
+
+Use `with get_connection() as conn:` (context manager) for all DB operations — defined in `database.py`.
+
+## Configuration (`job_agent/config.py`)
+
+All config lives here. Env vars override defaults at runtime.
+
+Key config objects:
+- `USER_PROFILE` — name, target roles, skills, experience, location
+- `JOB_SEARCH_PREFERENCES` — keywords, platforms, salary range, experience filters
+- Credentials: `NAUKRI_EMAIL`, `NAUKRI_PASSWORD`, `LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD`, `APIFY_API_TOKEN`, `OPENAI_API_KEY` — all read from env vars via `os.getenv()`
+
+**Never hardcode credentials.** Copy `job_agent/.env.example` to `job_agent/.env` for local development.
+
+## Automation Runners
+
+| File | Platform | Method |
+|------|----------|--------|
+| `naukri_runner.py` | Naukri Gulf | Selenium (Chrome headless) |
+| `linkedin_runner.py` | LinkedIn | Selenium (Chrome headless) |
+| `apify_runner.py` | Any | Apify API (no browser) |
+
+Selenium setup is centralized in `automation.py`. Chrome binary location is auto-detected for both local and ephemeral (Render.com) environments.
+
+## AI Features (`ai_services.py`)
+
+Uses `openai` SDK. Two main functions:
+- Cover letter generation — takes job description + user profile, returns formatted letter
+- Resume tailoring — returns JSON with suggested edits
+
+Response parsing uses JSON mode where possible; falls back to string parsing.
+
+## Static Frontend (`index.html` + `app.js`)
+
+A completely standalone UI requiring no backend. Uses **localStorage** for persistence. Tabs: Dashboard, Applications DB, AI Studio. Suitable for offline or Vercel static deployment.
+
+## Development Workflows
+
+### Local Setup
+```bash
+cp job_agent/.env.example job_agent/.env   # add credentials
+pip install -r requirements.txt
+python -m flask --app job_agent.app run    # starts at http://localhost:5000
+```
+
+### Running Tests
+```bash
+pytest job_agent/tests/
+```
+
+Tests use `monkeypatch` for env var mocking and temp files for DB isolation. Always run tests before committing automation or config changes.
+
+### Deployment
+
+**Render.com** (backend): defined in `render.yaml`. Start command: `gunicorn job_agent.app:app`. Required env vars set in Render dashboard (passwords marked `sync: false`).
+
+**Vercel** (static): `vercel.json` rewrites all routes to `index.html` for SPA behavior.
+
+## Code Conventions
+
+| Concern | Convention |
+|---------|-----------|
+| Python naming | `snake_case` for functions, variables, module-level constants in `UPPER_SNAKE_CASE` |
+| JS naming | `camelCase` for variables and functions |
+| Error handling | `try/except` with `logging`; never swallow exceptions silently |
+| DB access | Always use `with get_connection()` context manager |
+| Secrets | Always via `os.getenv()`, never hardcoded |
+| Async work | Background threads + status polling endpoint pattern |
+| New routes | Add `@requires_auth` decorator; return JSON for `/api/*` routes |
+| Templates | Jinja2 in `job_agent/templates/`; static assets in `job_agent/static/` |
+
+## Key Files to Know
+
+- **`job_agent/config.py`** — change user profile, job preferences, or add new env vars here first
+- **`job_agent/app.py`** — add new API endpoints here
+- **`job_agent/database.py`** — schema migrations and all SQL queries live here
+- **`job_agent/ai_services.py`** — modify AI prompts or add new AI features here
+- **`render.yaml`** — update when adding new env vars for deployment
