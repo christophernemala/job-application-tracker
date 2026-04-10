@@ -3,98 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cinematic Rebuild / Mojo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>Mojo — Cinematic Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Cinzel:wght@600;800&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#060606;--gold:#caa55a;--silver:#b9c2d0;--text:#f5f5f5}
-    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden}
-    section{position:relative;padding:7rem 6vw;border-top:1px solid rgba(255,255,255,.08)}
-    .hero{min-height:100vh;padding:0;display:grid;align-items:end}
-    .hero-bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=2000&q=80') center/cover no-repeat;filter:brightness(.35)}
-    .vignette{position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,transparent 15%,rgba(0,0,0,.75) 85%),linear-gradient(90deg,#000b 0%,transparent 50%),linear-gradient(0deg,#000 0%,transparent 45%)}
-    #three-canvas{position:fixed;inset:0;pointer-events:none;z-index:2}
-    .hero-content{position:relative;z-index:4;padding:10vh 6vw 8vh;max-width:750px}
-    .reveal{display:block;overflow:hidden}.reveal span{display:block;transform:translateY(110%)}
-    h1{font-family:Cinzel,serif;font-size:clamp(2rem,6vw,5rem);margin:.2em 0}
-    .thumbs{position:absolute;right:4vw;bottom:8vh;display:grid;gap:1rem;z-index:4}
-    .thumbs img{width:140px;height:90px;object-fit:cover;border:1px solid #ffffff44;filter:brightness(.8)}
-    .strip{white-space:nowrap;overflow:hidden;padding:1rem 0;background:#0b0b0b}
-    .track{display:inline-flex;gap:12px;animation:scroll 28s linear infinite}.strip:hover .track{animation-play-state:paused}
-    @keyframes scroll{to{transform:translateX(-50%)}}
-    .track figure{position:relative;margin:0}.track img{width:260px;height:170px;object-fit:cover;filter:brightness(.8)}
-    .track figcaption{position:absolute;left:10px;bottom:8px;font-size:.8rem;background:#0009;padding:4px 8px;border:1px solid #fff3;opacity:0;transition:.25s}
-    .track figure:hover figcaption{opacity:1}
-    .split{display:grid;grid-template-columns:1fr 1fr;gap:2rem}.split img{width:100%;height:100%;object-fit:cover;min-height:420px;filter:brightness(.7)}
-    .panel{height:360px;margin:1.2rem 0;display:grid;align-items:center;padding:2rem;background-size:cover;background-position:center;border:1px solid #ffffff29;position:relative;overflow:hidden}
-    .panel::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#000d 0%,#0008 35%,#0003 100%)}
-    .panel>*{position:relative;z-index:1}.year{position:absolute;right:2rem;top:2rem;font-size:4rem;color:#fff2;font-weight:800}
-    .panel:hover::after{content:'';position:absolute;inset:-100% 20%;background:linear-gradient(120deg,transparent,#dcb56e55,transparent);animation:sweep .8s}
-    @keyframes sweep{to{transform:translateY(240%)}}
+    :root{--bg:#040404;--fg:#f2f2f2;--gold:#c8a761;--silver:#a9b3c6}
+    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,sans-serif;overflow-x:hidden}
+    .progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--silver),var(--gold));z-index:50}
+    #fx{position:fixed;inset:0;pointer-events:none;z-index:3}
+    section{position:relative;padding:6rem 6vw;border-top:1px solid #ffffff17;background:#060606}
+    .hero{padding:0;min-height:100vh;display:flex;align-items:flex-end}
+    .hero-bg{position:absolute;inset:0;background:center/cover no-repeat;filter:brightness(.35)}
+    .hero-overlay{position:absolute;inset:0;background:radial-gradient(circle at 28% 30%,#0002 0%,#000c 72%),linear-gradient(90deg,#000d 0%,#0007 48%,#0002 100%),linear-gradient(0deg,#000f 0%,transparent 45%)}
+    .hero-copy{position:relative;z-index:5;max-width:760px;padding:9vh 6vw}
+    .clip{display:block;overflow:hidden}.clip span{display:block;transform:translateY(110%)}
+    h1{font-family:Cinzel,serif;font-size:clamp(2.2rem,6vw,5rem);margin:.15rem 0 1rem}
+    .thumbs{position:absolute;right:4vw;bottom:9vh;z-index:5;display:grid;gap:.8rem}.thumbs img{width:160px;height:98px;object-fit:cover;border:1px solid #ffffff42}
+    .strip{overflow:hidden;background:#090909;padding:1rem 0}.strip-track{display:flex;gap:12px;will-change:transform}.strip figure{position:relative;margin:0;flex:0 0 auto}.strip img{width:260px;height:170px;object-fit:cover;filter:brightness(.78)}
+    .tag{position:absolute;left:8px;bottom:7px;background:#000a;border:1px solid #fff3;padding:.2rem .5rem;font-size:.75rem;opacity:0;transition:.2s}.strip figure:hover .tag{opacity:1}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:2rem}.split img{width:100%;min-height:420px;object-fit:cover;filter:brightness(.7)}
+    .panel{height:360px;margin:1rem 0;padding:2rem;display:flex;align-items:end;position:relative;background:center/cover no-repeat;border:1px solid #ffffff2f;overflow:hidden}
+    .panel::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#000d 0%,#0009 40%,#0003 100%)}
+    .panel .txt{position:relative;z-index:2}.year{position:absolute;z-index:2;right:1.8rem;top:1.2rem;font-size:4rem;color:#fff2;font-weight:800}
+    .panel:hover::after{content:'';position:absolute;inset:-120% 20%;background:linear-gradient(125deg,transparent,#d4b06e66,transparent);animation:sweep .8s linear}
+    @keyframes sweep{to{transform:translateY(250%)}}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;transform:perspective(1200px) rotateY(-1deg)}
-    .grid img{width:100%;height:260px;object-fit:cover;border:1px solid #ffffff30;transition:.35s}.grid img:hover{transform:translateY(-4px) rotateY(0)}
-    .strength{background:url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=2000&q=80') center/cover fixed}
-    .strength::before{content:'';position:absolute;inset:0;background:#000d}.strength>*{position:relative}
-    .bar{margin:1rem 0}.bar .fill{height:14px;background:linear-gradient(90deg,var(--silver),var(--gold));border-radius:99px}
-    .contact{background:url('https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=2000&q=80') center/cover}.contact::before{content:'';position:absolute;inset:0;backdrop-filter:blur(4px);background:radial-gradient(circle,#0007,#000d)}.contact>*{position:relative}
-    .eq{position:fixed;right:20px;bottom:20px;z-index:8;background:#111;border:1px solid #fff5;color:#fff;padding:.7rem .9rem;cursor:pointer}
-    .progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--silver),var(--gold));z-index:9;width:0}
-    @media (max-width:900px){.split,.grid{grid-template-columns:1fr}.thumbs{display:none}}
+    .card{position:relative;border:1px solid #ffffff2b;overflow:hidden}.card img{display:block;width:100%;height:270px;object-fit:cover;transition:.3s}
+    .card:hover img{transform:scale(1.04) rotateY(0deg)}.card:hover::before{content:'';position:absolute;inset:8px;border:1px solid #d3ae60cc;z-index:2}
+    .strength{background:center/cover fixed no-repeat}.strength::before,.contact::before{content:'';position:absolute;inset:0;background:#000d}.strength>*,.contact>*{position:relative;z-index:2}
+    .bar{margin:1rem 0}.meter{height:13px;border:1px solid #ffffff3d;border-radius:999px;overflow:hidden}.fill{height:100%;background:linear-gradient(90deg,var(--silver),var(--gold))}
+    .contact{background:center/cover no-repeat}.contact::before{backdrop-filter:blur(5px);background:radial-gradient(circle,#0008,#000e)}
+    .eq{position:fixed;right:16px;bottom:16px;z-index:60;background:#0d0d0d;color:#fff;border:1px solid #ffffff5e;padding:.65rem .85rem;cursor:pointer}
+    @media(max-width:900px){.split,.grid{grid-template-columns:1fr}.thumbs{display:none}}
   </style>
 </head>
 <body>
-  <canvas id="three-canvas"></canvas><div class="progress" id="progress"></div>
-  <section class="hero">
-    <div class="hero-bg"></div><div class="vignette"></div>
-    <div class="hero-content">
-      <div class="reveal"><span>ATHLETE • CREATOR • COACH</span></div>
-      <h1 class="reveal"><span>Cinematic Performance Profile</span></h1>
-      <div class="reveal"><span>Groundbreaking layout, immersive motion, and non-repeating generative ambience.</span></div>
-    </div>
-    <div class="thumbs"><img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80"><img src="https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=800&q=80"><img src="https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=800&q=80"></div>
-  </section>
-  <section class="strip"><div class="track" id="track"></div></section>
-  <section><div class="split"><img id="aboutImg" src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=1400&q=80"><div><h2>About</h2><p>Split-screen composition with cinematic fades and scroll-driven reveals.</p></div></div></section>
-  <section id="panels"></section>
-  <section><h2>Tilted Gallery</h2><div class="grid" id="grid"></div></section>
-  <section class="strength"><h2>Strength Profile</h2><div class="bar">Power<div class="fill" style="width:92%"></div></div><div class="bar">Conditioning<div class="fill" style="width:88%"></div></div><div class="bar">Stage Presence<div class="fill" style="width:96%"></div></div></section>
-  <section class="contact"><h2>Contact</h2><p>Available for coaching, sponsorships, and campaigns.</p></section>
-  <button class="eq" id="musicBtn">♫ Audio</button>
+<div id="progress" class="progress"></div><canvas id="fx"></canvas>
+<section class="hero">
+  <div class="hero-bg" id="heroBg"></div><div class="hero-overlay"></div>
+  <div class="hero-copy"><span class="clip"><span>CINEMATIC • MOTION • IMPACT</span></span><h1 class="clip"><span>Innovative Performance Storyworld</span></h1><span class="clip"><span>Ground-up design language with immersive motion and generative ambience.</span></span></div>
+  <div class="thumbs"><img id="thumb1" alt="thumbnail 1"><img id="thumb2" alt="thumbnail 2"><img id="thumb3" alt="thumbnail 3"></div>
+</section>
+<section class="strip"><div id="stripTrack" class="strip-track"></div></section>
+<section><div class="split"><img id="aboutImage" alt="about"><div><h2>Split-Screen About</h2><p>Image-led composition with cinematic dissolve and scroll-triggered text motion.</p></div></div></section>
+<section id="achievementPanels"></section>
+<section><h2>Tilted Gallery</h2><div id="gallery" class="grid"></div></section>
+<section class="strength" id="strength"><h2>Strength Bars</h2><div class="bar"><small>Power Output</small><div class="meter"><div class="fill" style="width:92%"></div></div></div><div class="bar"><small>Conditioning</small><div class="meter"><div class="fill" style="width:89%"></div></div></div><div class="bar"><small>Presentation</small><div class="meter"><div class="fill" style="width:95%"></div></div></div></section>
+<section class="contact" id="contact"><h2>Contact</h2><p>Available for coaching, collaborations, and athlete-brand campaigns.</p></section>
+<button id="audio" class="eq" aria-label="toggle background audio">♫ Audio</button>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+<script>
+  const images=[
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=2200&q=80',
+    'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=900&q=80',
+    'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1534258936925-c58bed479fcb?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1517344368193-41552b6ad3f5?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1434682881908-b43d0467b798?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1517963628607-235ccdd5476c?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1532029837206-abbe2b7620e3?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1470468969717-61d5d54fd036?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1596357395217-80de13130e92?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80'
+  ];
+  document.getElementById('heroBg').style.backgroundImage=`url(${images[0]})`;
+  ['thumb1','thumb2','thumb3'].forEach((id,i)=>document.getElementById(id).src=images[i+1]);
+  const strip=document.getElementById('stripTrack');
+  images.slice(4,12).forEach((src,i)=>strip.insertAdjacentHTML('beforeend',`<figure><img src="${src}" alt="strip ${i+1}"><span class="tag">Frame ${i+1}</span></figure>`));
+  const panels=document.getElementById('achievementPanels');
+  ['Olympia','Backstage','Sheru Classic','Stage Walk','Gym Form'].forEach((t,i)=>panels.insertAdjacentHTML('beforeend',`<article class="panel" style="background-image:url(${images[12+i]})"><div class="txt"><h3>${t}</h3><p>Cinematic reveal panel.</p></div><div class="year">20${21+i}</div></article>`));
+  document.getElementById('aboutImage').src=images[11];
+  const gallery=document.getElementById('gallery'); images.slice(17,20).forEach((src)=>gallery.insertAdjacentHTML('beforeend',`<div class="card"><img src="${src}" alt="gallery"></div>`));
+  document.getElementById('strength').style.backgroundImage=`url(${images[9]})`;
+  document.getElementById('contact').style.backgroundImage=`url(${images[10]})`;
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
-  <script>
-    const imgs=[
-      'photo-1517838277536-f5f99be501cd','photo-1518611012118-696072aa579a','photo-1534258936925-c58bed479fcb','photo-1540497077202-7c8a3999166f',
-      'photo-1574680178050-55c6a6a96e0a','photo-1517344368193-41552b6ad3f5','photo-1579758629938-03607ccdbaba','photo-1434682881908-b43d0467b798',
-      'photo-1517963628607-235ccdd5476c','photo-1599058917212-d750089bc07e','photo-1526506118085-60ce8714f8c5','photo-1596357395217-80de13130e92',
-      'photo-1532029837206-abbe2b7620e3','photo-1470468969717-61d5d54fd036','photo-1486218119243-13883505764c','photo-1571902943202-507ec2618e8f'
-    ].map(id=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`);
-    const track=document.getElementById('track'); [...imgs.slice(0,8),...imgs.slice(0,8)].forEach((u,i)=>track.insertAdjacentHTML('beforeend',`<figure><img src="${u}"><figcaption>tag ${i%8+1}</figcaption></figure>`));
-    const panels=document.getElementById('panels'); imgs.slice(8,13).forEach((u,i)=>panels.insertAdjacentHTML('beforeend',`<div class="panel" style="background-image:url(${u})"><div><h3>Achievement Panel ${i+1}</h3><p>Cinematic strip reveal with gold shimmer.</p></div><div class="year">20${20+i}</div></div>`));
-    const grid=document.getElementById('grid'); imgs.slice(13).forEach(u=>grid.insertAdjacentHTML('beforeend',`<img src="${u}">`));
+  let x=0,speed=.35,paused=false; strip.addEventListener('mouseenter',()=>paused=true); strip.addEventListener('mouseleave',()=>paused=false);
+  (function runStrip(){if(!paused){x-=speed;const w=strip.scrollWidth-window.innerWidth;if(Math.abs(x)>w)x=0;strip.style.transform=`translateX(${x}px)`;}requestAnimationFrame(runStrip)})();
 
-    gsap.registerPlugin(ScrollTrigger); gsap.utils.toArray('.reveal span').forEach((el,i)=>gsap.to(el,{y:0,duration:.9,delay:i*.1,ease:'power2.out'}));
-    gsap.utils.toArray('.panel').forEach((p,i)=>gsap.from(p,{y:80,opacity:0,duration:.8,scrollTrigger:{trigger:p,start:'top 85%'}}));
-    gsap.from('#aboutImg',{x:-120,opacity:0,duration:1,scrollTrigger:{trigger:'#aboutImg',start:'top 80%'}});
-    addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress').style.width=`${(d.scrollTop/(d.scrollHeight-d.clientHeight))*100}%`;});
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.utils.toArray('.clip span').forEach((el,i)=>gsap.to(el,{y:0,duration:.85,delay:i*.08,ease:'power2.out'}));
+  gsap.utils.toArray('.panel').forEach(p=>gsap.from(p,{y:80,opacity:0,duration:.8,scrollTrigger:{trigger:p,start:'top 84%'}}));
+  gsap.from('#aboutImage',{x:-130,opacity:0,duration:1,scrollTrigger:{trigger:'#aboutImage',start:'top 82%'}});
+  addEventListener('scroll',()=>{const d=document.documentElement;document.getElementById('progress').style.width=`${(d.scrollTop/(d.scrollHeight-d.clientHeight))*100}%`;});
 
-    const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000),ren=new THREE.WebGLRenderer({canvas:document.getElementById('three-canvas'),alpha:true});
-    ren.setSize(innerWidth,innerHeight); cam.position.z=35;
-    const make=(color,size,count)=>{const g=new THREE.BufferGeometry(),a=new Float32Array(count*3);for(let i=0;i<a.length;i++)a[i]=(Math.random()-.5)*120;g.setAttribute('position',new THREE.BufferAttribute(a,3));return new THREE.Points(g,new THREE.PointsMaterial({color,size,transparent:true,opacity:.55}))};
-    const gold=make(0xcaa55a,.28,900),silver=make(0xb9c2d0,.2,900); scene.add(gold,silver);
-    (function animate(){requestAnimationFrame(animate);gold.rotation.y+=.0008;silver.rotation.y-=.001;ren.render(scene,cam);})(); onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)};
+  const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({canvas:document.getElementById('fx'),alpha:true});
+  renderer.setSize(innerWidth,innerHeight); cam.position.z=30;
+  const cloud=(color,size,count)=>{const g=new THREE.BufferGeometry(),pts=new Float32Array(count*3);for(let i=0;i<pts.length;i++)pts[i]=(Math.random()-.5)*120;g.setAttribute('position',new THREE.BufferAttribute(pts,3));return new THREE.Points(g,new THREE.PointsMaterial({color,size,opacity:.5,transparent:true}))};
+  const gold=cloud(0xc8a761,.28,850),silver=cloud(0xa9b3c6,.2,850); scene.add(gold,silver);
+  (function render(){requestAnimationFrame(render);gold.rotation.y+=.0009;silver.rotation.y-=.001;renderer.render(scene,cam)})();
+  addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
-    let synth,bass,fx,loop,on=false; document.getElementById('musicBtn').onclick=async()=>{
-      if(!on){await Tone.start();synth=new Tone.PolySynth(Tone.Synth).toDestination();bass=new Tone.Synth().toDestination();fx=new Tone.Reverb({decay:8,wet:.5}).toDestination();synth.connect(fx);
-        const chords=[['C4','E4','G4'],['A3','C4','E4'],['F3','A3','C4'],['G3','B3','D4']]; let i=0;
-        loop=new Tone.Loop((t)=>{const c=chords[i%chords.length];synth.triggerAttackRelease(c,'2n',t,.18);bass.triggerAttackRelease(c[0].replace('4','2'),'1n',t,.12);i++;},'1m').start(0);
-        Tone.Transport.start();on=true;document.getElementById('musicBtn').style.borderColor='#caa55a';}
-      else{Tone.Transport.stop();loop?.dispose();synth?.dispose();bass?.dispose();fx?.dispose();on=false;document.getElementById('musicBtn').style.borderColor='';}
-    }
-  </script>
+  let on=false,synth,bass,verb,loop; document.getElementById('audio').onclick=async()=>{
+    if(!on){await Tone.start();synth=new Tone.PolySynth(Tone.Synth).toDestination();verb=new Tone.Reverb({decay:8,wet:.52}).toDestination();synth.connect(verb);bass=new Tone.Synth().toDestination();
+      const chords=[['C4','E4','G4'],['A3','C4','E4'],['F3','A3','C4'],['G3','B3','D4']];let step=0;
+      loop=new Tone.Loop((time)=>{const c=chords[step%4];synth.triggerAttackRelease(c,'2n',time,.16);bass.triggerAttackRelease(c[0].replace('4','2'),'1n',time,.11);step=Math.floor(Math.random()*1000);},'1m').start(0);
+      Tone.Transport.start();on=true;document.getElementById('audio').style.borderColor='#c8a761';}
+    else{Tone.Transport.stop();loop?.dispose();synth?.dispose();bass?.dispose();verb?.dispose();on=false;document.getElementById('audio').style.borderColor='#ffffff5e';}
+  };
+</script>
 </body>
 </html>
