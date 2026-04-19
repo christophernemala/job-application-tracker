@@ -17,9 +17,10 @@ import webbrowser
 from datetime import datetime
 from pathlib import Path
 
-from pipeline.config import ZAPIER_WEBHOOK, MOCK_MODE
+from pipeline.config import ZAPIER_WEBHOOK, SLACK_WEBHOOK_URL, MOCK_MODE
 from pipeline.tracker import db
 from pipeline.utils.logger import get_logger
+from pipeline.utils.slack import notify_application_submitted
 
 log = get_logger(__name__)
 
@@ -151,6 +152,7 @@ def submit_job(job: dict, pkg_dir: Path) -> str:
         applied_at=applied_at,
     )
     _notify_zapier(job, tracker_status)
+    notify_application_submitted(job, tracker_status)
     log.info("Job %s → status=%s", job.get("id"), tracker_status)
     return tracker_status
 

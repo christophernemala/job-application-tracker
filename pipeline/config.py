@@ -29,6 +29,7 @@ MOCK_MODE: bool = os.getenv("MOCK_MODE", "true").lower() == "true"
 APIFY_TOKEN: str = os.getenv("APIFY_TOKEN", "")
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 ZAPIER_WEBHOOK: str = os.getenv("ZAPIER_WEBHOOK", "")
+SLACK_WEBHOOK_URL: str = os.getenv("SLACK_WEBHOOK_URL", "")
 
 # ---------------------------------------------------------------------------
 # Input Files

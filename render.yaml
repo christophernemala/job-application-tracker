@@ -33,7 +33,15 @@ services:
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
         value: "Dubai, UAE"
+      - key: FLASK_SECRET_KEY
+        sync: false
+      - key: DASHBOARD_USERNAME
+        value: "admin"
+      - key: DASHBOARD_PASSWORD
+        sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_URL
+        sync: false
+      - key: SLACK_WEBHOOK_URL
         sync: false
