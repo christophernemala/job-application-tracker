@@ -33,3 +33,7 @@ services:
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
         value: "Dubai, UAE"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_URL
+        sync: false
