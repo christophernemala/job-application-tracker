@@ -12,6 +12,8 @@ from job_agent.database import (
     save_application,
     update_application_notes,
 )
+from job_agent.telegram_bot import handle_update, set_webhook
+import job_agent.telegram_bot as _tgbot
 
 app = Flask(__name__)
 # Secret key for session management - use env var or fallback
@@ -43,8 +45,9 @@ def requires_auth(f):
     return decorated
 
 
-# Initialize database once at startup, not on every request
+# Initialize database and Telegram webhook once at startup
 init_database()
+set_webhook()
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -118,6 +121,16 @@ def create_application():
         screenshot_path=payload.get("screenshot_path"),
     )
     return jsonify({"id": app_id}), 201
+
+
+@app.route("/webhook/telegram/<token>", methods=["POST"])
+def telegram_webhook(token: str):
+    """Receive updates from Telegram. Token in path authenticates the caller."""
+    if token != _tgbot.TELEGRAM_BOT_TOKEN:
+        return "", 403
+    update = request.get_json(silent=True) or {}
+    handle_update(update)
+    return "OK", 200
 
 
 if __name__ == "__main__":
