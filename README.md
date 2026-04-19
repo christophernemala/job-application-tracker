@@ -31,6 +31,7 @@ This project has **TWO parts**:
 |------|------|
 | **Live Web Tracker** | https://christophernemala.github.io/job-application-tracker/ |
 | **Setup Guide (Automation)** | [SETUP_GUIDE.md](SETUP_GUIDE.md) |
+| **Telegram Bot Setup** | [TELEGRAM_BOT_SETUP.md](TELEGRAM_BOT_SETUP.md) |
 | **GitHub Repository** | https://github.com/christophernemala/job-application-tracker |
 
 ---
@@ -51,6 +52,7 @@ This project has **TWO parts**:
 - ✅ **SQLite database** - Stores all applications
 - ✅ **OpenAI integration** - Generates personalized cover letters
 - ✅ **Flask dashboard** - View applications in browser
+- ✅ **Telegram bot** - Query applications via Telegram
 - ✅ **Verification system** - Confirms applications succeeded
 - ⚠️ **Requires setup** - See [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
