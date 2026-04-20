@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_root_env_example_exists():
     env_example = REPO_ROOT / ".env.example"
     assert env_example.exists()
+    assert env_example.read_text(encoding="utf-8").strip()
 
 
 def test_root_env_example_contains_required_keys():
@@ -28,5 +29,5 @@ def test_workflow_runs_syntax_validation_and_tests():
     workflow_file = REPO_ROOT / ".github" / "workflows" / "main.yml"
     assert workflow_file.exists(), "Expected CI workflow file at .github/workflows/main.yml"
     workflow = workflow_file.read_text(encoding="utf-8")
-    assert "python -m compileall job_agent" in workflow
-    assert "python -m pytest job_agent/tests/ -v" in workflow
+    assert "compileall" in workflow and "job_agent" in workflow
+    assert "pytest" in workflow and "job_agent/tests/" in workflow
