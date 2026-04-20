@@ -509,7 +509,7 @@ class AutoApplyRunner(HumanBehaviorMixin):
         total_applied = stats["linkedin_applied"] + stats["naukri_applied"]
         slack_notifier.notify_run_summary(
             platform="LinkedIn + Naukri Gulf",
-            attempted=stats["jobs_found"],
+            attempted=total_applied + stats["errors"],
             successful=total_applied,
             failed=stats["errors"],
         )
