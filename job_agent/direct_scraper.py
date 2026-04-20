@@ -146,11 +146,11 @@ def scrape_naukri_gulf_direct(max_results: int = 30) -> dict:
     session = requests.Session()
     session.headers.update(_HEADERS)
 
-    for keyword in keywords[:4]:
+    for keyword in keywords[:4]:  # limit to 4 keywords to stay within Render's free-tier request budget
         if results["jobs_found"] >= max_results:
             break
 
-        kw_slug = keyword.lower().replace(" ", "-")
+        kw_slug = quote_plus(keyword.lower().replace(" ", "-"))
         url = f"https://www.naukrigulf.com/{kw_slug}-jobs-in-{location}"
 
         try:

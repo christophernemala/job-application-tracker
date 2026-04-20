@@ -289,6 +289,7 @@
 
     // ── Automation helpers ────────────────────────────────────────────────────
     var _pollTimer = null;
+    var POLL_INTERVAL = 3000; // ms between status-check requests
 
     function _setStatus(msg, cls) {
       var el = document.getElementById('automationStatus');
@@ -308,7 +309,7 @@
         .then(function(data) {
           if (data.running) {
             _setStatus('⏳ Running…', 'running');
-            _pollTimer = setTimeout(_pollStatus, 3000);
+            _pollTimer = setTimeout(_pollStatus, POLL_INTERVAL);
           } else {
             _setButtonsDisabled(false);
             clearTimeout(_pollTimer);
@@ -343,7 +344,7 @@
       fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
         .then(function(r) {
           if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.statusText); });
-          _pollTimer = setTimeout(_pollStatus, 3000);
+          _pollTimer = setTimeout(_pollStatus, POLL_INTERVAL);
         })
         .catch(function(err) {
           _setStatus('❌ ' + err.message, 'error');
@@ -361,7 +362,7 @@
       })
         .then(function(r) {
           if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.statusText); });
-          _pollTimer = setTimeout(_pollStatus, 3000);
+          _pollTimer = setTimeout(_pollStatus, POLL_INTERVAL);
         })
         .catch(function(err) {
           _setStatus('❌ ' + err.message, 'error');
@@ -376,7 +377,7 @@
         if (data.running) {
           _setButtonsDisabled(true);
           _setStatus('⏳ Running…', 'running');
-          _pollTimer = setTimeout(_pollStatus, 3000);
+          _pollTimer = setTimeout(_pollStatus, POLL_INTERVAL);
         }
       });
   </script>

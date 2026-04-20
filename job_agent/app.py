@@ -236,6 +236,7 @@ def run_direct_scrape():
     return jsonify({"status": "started", "mode": "direct", "max_results": max_results}), 202
 
 
+@app.route("/api/automation-status")
 @requires_auth
 def automation_status():
     """Check the current automation run status."""
