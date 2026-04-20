@@ -7,13 +7,23 @@ __pycache__/
 .venv/
 venv/
 env/
+ENV/
+node_modules/
 
 # Job agent runtime/secrets
 job_agent/.env
+/.env
+/.env.*
+!/.env.example
+!/job_agent/.env.example
 job_agent/job_agent.db
 job_agent/*.png
 job_agent/*.pkl
 job_agent/naukri_session.pkl
+*.log
+coverage/
+dist/
+build/
 
 # IDE
 .vscode/
