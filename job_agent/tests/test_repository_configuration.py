@@ -1,0 +1,33 @@
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_root_env_example_exists():
+    env_example = REPO_ROOT / ".env.example"
+    assert env_example.exists()
+    assert env_example.read_text(encoding="utf-8").strip()
+
+
+def test_root_env_example_contains_required_keys():
+    env_example = REPO_ROOT / ".env.example"
+    content = env_example.read_text(encoding="utf-8")
+    assert "DASHBOARD_USERNAME=" in content
+    assert "NAUKRI_GULF_EMAIL=" in content
+    assert "OPENAI_API_KEY=" in content
+
+
+def test_gitignore_excludes_dependencies_and_env_files():
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "node_modules/" in gitignore
+    assert "/.env" in gitignore
+    assert "/.env.local" in gitignore
+
+
+def test_workflow_runs_syntax_validation_and_tests():
+    workflow_file = REPO_ROOT / ".github" / "workflows" / "main.yml"
+    assert workflow_file.exists(), "Expected CI workflow file at .github/workflows/main.yml"
+    workflow = workflow_file.read_text(encoding="utf-8")
+    assert "compileall" in workflow and "job_agent" in workflow
+    assert "pytest" in workflow and "job_agent/tests/" in workflow
