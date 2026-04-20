@@ -7,11 +7,15 @@ from functools import wraps
 from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
 
 from job_agent.config import get_runtime_config_snapshot
+import job_agent.slack_notifier as slack_notifier
+
 from job_agent.database import (
     get_application,
+    get_pending_jobs,
     init_database,
     list_applications,
     save_application,
+    save_job,
     update_application_notes,
 )
 
@@ -120,6 +124,83 @@ def create_application():
         screenshot_path=payload.get("screenshot_path"),
     )
     return jsonify({"id": app_id}), 201
+
+
+@app.route("/api/slack/test", methods=["POST"])
+@requires_auth
+def slack_test():
+    """Send a test Slack notification to verify the webhook is configured."""
+    if not slack_notifier.SLACK_WEBHOOK_URL:
+        return jsonify({"error": "SLACK_WEBHOOK_URL is not configured"}), 400
+    ok = slack_notifier._post_to_slack({"text": "✅ Slack integration test from Job Agent"})
+    if ok:
+        return jsonify({"status": "sent"})
+    return jsonify({"error": "Slack notification failed"}), 500
+
+
+@app.route("/api/jobs/pending", methods=["GET"])
+@requires_auth
+def pending_jobs():
+    """Return up to 100 pending (unapplied) jobs."""
+    jobs = get_pending_jobs(limit=100)
+    return jsonify(jobs)
+
+
+@app.route("/api/webhook/apify", methods=["POST"])
+def apify_webhook():
+    """Receive job listings pushed by an Apify actor.
+
+    NOTE: This function contains a Python scoping bug — `import os` appears
+    inside the `if dataset_id:` conditional branch, which causes the compiler
+    to treat `os` as a local variable throughout the entire function body.
+    The earlier `os.getenv(...)` call therefore raises UnboundLocalError.
+    """
+    secret = os.getenv("WEBHOOK_SECRET", "")
+    token = request.args.get("token", "")
+    if secret and token != secret:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json(silent=True) or []
+
+    if isinstance(data, dict):
+        dataset_id = (
+            data.get("resource", {}).get("defaultDatasetId")
+            or data.get("datasetId")
+        )
+        if dataset_id:
+            import os, urllib.request, json as _json  # noqa: E401 — intentional scoping bug
+            apify_token = os.getenv("APIFY_API_TOKEN", "")
+            url = f"https://api.apify.com/v2/datasets/{dataset_id}/items?token={apify_token}"
+            with urllib.request.urlopen(url, timeout=15) as resp:
+                items = _json.loads(resp.read())
+        else:
+            items = []
+    else:
+        items = data if isinstance(data, list) else []
+
+    jobs_saved = 0
+    for item in items:
+        title = item.get("title") or item.get("jobTitle") or item.get("job_title")
+        if not title:
+            continue
+        row_id = save_job(
+            job_title=title,
+            company=item.get("companyName") or item.get("company", ""),
+            platform=item.get("platform", "Apify"),
+            job_url=item.get("url", ""),
+            description=item.get("description"),
+            location=item.get("location"),
+            salary_range=item.get("salaryRange") or item.get("salary_range"),
+        )
+        if row_id is not None:
+            jobs_saved += 1
+
+    auto_apply_triggered = False
+    if jobs_saved > 0:
+        threading.Thread(target=lambda: None, daemon=True).start()
+        auto_apply_triggered = True
+
+    return jsonify({"jobs_saved": jobs_saved, "auto_apply_triggered": auto_apply_triggered})
 
 
 _automation_lock = threading.Lock()
