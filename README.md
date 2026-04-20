@@ -35,6 +35,15 @@ This project has **TWO parts**:
 
 ---
 
+## ⚙️ Repository Configuration
+
+- CI workflow: [`.github/workflows/main.yml`](.github/workflows/main.yml) runs dependency install, syntax validation, and tests on every push/PR.
+- Dependency updates: [`.github/dependabot.yml`](.github/dependabot.yml) enables scheduled Dependabot updates.
+- Security policy: [`SECURITY.md`](SECURITY.md) explains vulnerability reporting and response expectations.
+- Environment template: copy [`.env.example`](.env.example) to `.env` for local setup (never commit `.env`).
+
+---
+
 ## 📦 What's Included
 
 ### **Web Tracker** (`index.html`, `app.js`, `styles.css`)
