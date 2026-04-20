@@ -74,4 +74,4 @@ jobs:
               }
             }
 
-            core.setFailed("Unable to request a Copilot reviewer automatically for this pull request.");
+            core.warning("Unable to request a Copilot reviewer automatically for this pull request; continuing without failing the workflow.");
