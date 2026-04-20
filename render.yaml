@@ -33,3 +33,12 @@ services:
         value: "Dubai, UAE"
       - key: SLACK_WEBHOOK_URL
         sync: false
+
+  - type: web
+    name: telegram-job-agent-web
+    runtime: static
+    staticPublishPath: .
+    buildCommand: ""
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"

@@ -155,6 +155,62 @@ def update_application_notes(application_id: int, notes: str) -> bool:
         return result.rowcount > 0
 
 
+def save_job(
+    *,
+    job_title: str,
+    company: str,
+    platform: str,
+    job_url: str,
+    description: str | None = None,
+    location: str | None = None,
+    salary_range: str | None = None,
+) -> int | None:
+    """Insert a discovered job into the jobs table.
+
+    Returns the new row id on success, or None if the URL already exists
+    (duplicate).  Never raises.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO jobs (job_title, company, platform, job_url, description, location, salary_range)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (job_title, company, platform, job_url, description, location, salary_range),
+            )
+            return int(cursor.lastrowid)
+        except sqlite3.IntegrityError:
+            return None
+
+
+def get_pending_jobs(limit: int = 20) -> list[dict[str, Any]]:
+    """Return up to *limit* unapplied jobs, oldest first."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, job_title, company, platform, job_url, discovered_date,
+                   description, salary_range, location, applied, match_score, skills_required
+            FROM jobs
+            WHERE applied = 0
+            ORDER BY discovered_date ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def mark_job_applied(job_id: int) -> None:
+    """Mark the job with *job_id* as applied.  No-op for unknown ids."""
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE jobs SET applied = 1 WHERE id = ?",
+            (job_id,),
+        )
+
+
 def log_event(action: str, status: str, error_message: str | None = None, job_id: int | None = None) -> None:
     with get_connection() as conn:
         conn.execute(
