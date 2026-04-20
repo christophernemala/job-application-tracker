@@ -27,7 +27,7 @@ jobs:
     - name: Validate Python package syntax
       run: |
         python -m compileall job_agent
-         
+
     - name: Run tests
       run: |
         python -m pytest job_agent/tests/ -v
