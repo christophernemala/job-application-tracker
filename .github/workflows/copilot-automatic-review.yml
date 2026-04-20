@@ -27,7 +27,20 @@ jobs:
               "copilot-pull-request-reviewer[bot]",
               "copilot",
             ];
+            const requestedReviewers = context.payload.pull_request.requested_reviewers ?? [];
+            const requestedReviewerLogins = new Set(
+              requestedReviewers
+                .map((reviewer) => reviewer?.login)
+                .filter(Boolean),
+            );
+            const existingCopilotReviewer = reviewerCandidates.find((reviewer) =>
+              requestedReviewerLogins.has(reviewer),
+            );
 
+            if (existingCopilotReviewer) {
+              core.info(`${existingCopilotReviewer} was already requested for #${pull_number}.`);
+              return;
+            }
             for (const copilotReviewer of reviewerCandidates) {
               try {
                 await github.rest.pulls.requestReviewers({
