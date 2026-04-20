@@ -204,7 +204,38 @@ def run_apify_scrape():
     return jsonify({"status": "started", "mode": "apify", "platform": platform, "max_results": max_results}), 202
 
 
-@app.route("/api/automation-status")
+@app.route("/api/scrape-direct", methods=["POST"])
+@requires_auth
+def run_direct_scrape():
+    """Scrape Naukri Gulf jobs via plain HTTP (no browser or Apify token needed).
+
+    JSON body options:
+        max_results: int (default 30)
+    """
+    if _automation_status["running"]:
+        return jsonify({"error": "Automation is already running"}), 409
+
+    payload = request.get_json(silent=True) or {}
+    max_results = min(int(payload.get("max_results", 30)), 100)
+
+    def _run():
+        with _automation_lock:
+            _automation_status["running"] = True
+            _automation_status["last_result"] = None
+            try:
+                from job_agent.direct_scraper import run_direct_scrape as do_scrape
+                result = do_scrape(max_results=max_results)
+                _automation_status["last_result"] = result
+            except Exception as exc:
+                logging.getLogger(__name__).error("Direct scrape failed: %s", exc)
+                _automation_status["last_result"] = {"error": str(exc)}
+            finally:
+                _automation_status["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "started", "mode": "direct", "max_results": max_results}), 202
+
+
 @requires_auth
 def automation_status():
     """Check the current automation run status."""

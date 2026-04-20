@@ -34,6 +34,7 @@
     .application-card .meta small { color: rgba(255,255,255,0.5); font-size: 12px; }
     .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .status-applied { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .status-scraped { background: rgba(139,92,246,0.2); color: #c4b5fd; }
     .status-interview { background: rgba(245,158,11,0.2); color: #fbbf24; }
     .status-offered { background: rgba(34,197,94,0.2); color: #4ade80; }
     .status-rejected { background: rgba(239,68,68,0.2); color: #f87171; }
@@ -65,6 +66,21 @@
     .btn-link:hover { opacity: 0.9; }
     .btn-save-notes { margin-top: 8px; padding: 6px 14px; background: #6366f1; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .header { padding: 12px 16px; } main { padding: 20px 12px; } }
+    .automation-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px 24px; margin-bottom: 28px; }
+    .automation-panel h2 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 14px; }
+    .automation-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .btn-automation { padding: 9px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-green  { background: rgba(34,197,94,0.2);  color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
+    .btn-green:hover  { background: rgba(34,197,94,0.35); }
+    .btn-purple { background: rgba(139,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.35); }
+    .btn-purple:hover { background: rgba(139,92,246,0.35); }
+    .btn-indigo { background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.35); }
+    .btn-indigo:hover { background: rgba(99,102,241,0.35); }
+    .btn-automation:disabled { opacity: 0.45; cursor: not-allowed; }
+    #automationStatus { font-size: 13px; color: rgba(255,255,255,0.55); min-height: 18px; }
+    #automationStatus.running { color: #fbbf24; }
+    #automationStatus.done    { color: #4ade80; }
+    #automationStatus.error   { color: #f87171; }
   </style>
 </head>
 <body>
@@ -92,6 +108,26 @@
           {% if scores %}{{ (scores|sum / scores|length)|round|int }}%{% else %}N/A{% endif %}
         </div>
       </div>
+    </div>
+
+    <!-- Automation Control Panel -->
+    <div class="automation-panel">
+      <h2>&#x1F916; Job Search Automation</h2>
+      <div class="automation-actions">
+        <button class="btn-automation btn-green" onclick="runScrape('direct')" title="Scrape Naukri Gulf via HTTP — no browser or API key needed">
+          &#x1F50D; Scrape Jobs (Direct)
+        </button>
+        <button class="btn-automation btn-purple" onclick="runScrape('apify')" title="Scrape via Apify — requires APIFY_API_TOKEN env var">
+          &#x26A1; Scrape via Apify
+        </button>
+        <button class="btn-automation btn-indigo" onclick="runAutomation('naukri')" title="Full browser automation on Naukri Gulf — requires Chrome on server">
+          &#x1F4CB; Auto-Apply (Naukri)
+        </button>
+        <button class="btn-automation btn-indigo" onclick="runAutomation('linkedin')" title="Full browser automation on LinkedIn — requires Chrome on server">
+          &#x1F4CB; Auto-Apply (LinkedIn)
+        </button>
+      </div>
+      <div id="automationStatus">Ready — click a button above to start.</div>
     </div>
 
     <div class="section-header">
@@ -250,6 +286,99 @@
         alert('Notes saved!');
       });
     }
+
+    // ── Automation helpers ────────────────────────────────────────────────────
+    var _pollTimer = null;
+
+    function _setStatus(msg, cls) {
+      var el = document.getElementById('automationStatus');
+      el.textContent = msg;
+      el.className = cls || '';
+    }
+
+    function _setButtonsDisabled(disabled) {
+      document.querySelectorAll('.btn-automation').forEach(function(b) {
+        b.disabled = disabled;
+      });
+    }
+
+    function _pollStatus() {
+      fetch('/api/automation-status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.running) {
+            _setStatus('⏳ Running…', 'running');
+            _pollTimer = setTimeout(_pollStatus, 3000);
+          } else {
+            _setButtonsDisabled(false);
+            clearTimeout(_pollTimer);
+            if (!data.last_result) {
+              _setStatus('Ready — click a button above to start.');
+              return;
+            }
+            var r = data.last_result;
+            if (r.error) {
+              _setStatus('❌ Error: ' + r.error, 'error');
+            } else if (r.runs) {
+              var saved = r.runs.reduce(function(s, x) { return s + (x.jobs_saved || 0); }, 0);
+              _setStatus('✅ Done — ' + saved + ' job(s) saved across platforms. Refreshing…', 'done');
+              setTimeout(function() { window.location.reload(); }, 2000);
+            } else {
+              var saved = r.jobs_saved || r.applications_successful || 0;
+              _setStatus('✅ Done — ' + saved + ' job(s) saved. Refreshing…', 'done');
+              setTimeout(function() { window.location.reload(); }, 2000);
+            }
+          }
+        })
+        .catch(function() {
+          _setStatus('⚠️ Could not reach server.', 'error');
+          _setButtonsDisabled(false);
+        });
+    }
+
+    function runScrape(mode) {
+      _setButtonsDisabled(true);
+      var url = mode === 'apify' ? '/api/scrape' : '/api/scrape-direct';
+      _setStatus('⏳ Starting ' + (mode === 'apify' ? 'Apify' : 'direct') + ' scrape…', 'running');
+      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.statusText); });
+          _pollTimer = setTimeout(_pollStatus, 3000);
+        })
+        .catch(function(err) {
+          _setStatus('❌ ' + err.message, 'error');
+          _setButtonsDisabled(false);
+        });
+    }
+
+    function runAutomation(platform) {
+      _setButtonsDisabled(true);
+      _setStatus('⏳ Starting automation for ' + platform + '…', 'running');
+      fetch('/api/run-automation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: platform, max_applications: 5 })
+      })
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || r.statusText); });
+          _pollTimer = setTimeout(_pollStatus, 3000);
+        })
+        .catch(function(err) {
+          _setStatus('❌ ' + err.message, 'error');
+          _setButtonsDisabled(false);
+        });
+    }
+
+    // Resume polling if a run is already in progress when the page loads
+    fetch('/api/automation-status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.running) {
+          _setButtonsDisabled(true);
+          _setStatus('⏳ Running…', 'running');
+          _pollTimer = setTimeout(_pollStatus, 3000);
+        }
+      });
   </script>
 </body>
 </html>

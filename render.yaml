@@ -4,11 +4,15 @@ services:
     name: job-application-tracker
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: apt-get update -qq && apt-get install -y -qq chromium-browser chromium-chromedriver && pip install -r requirements.txt
     startCommand: gunicorn job_agent.app:app
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.10"
+        value: "3.12"
+      - key: GOOGLE_CHROME_BIN
+        value: /usr/bin/chromium-browser
+      - key: CHROMEDRIVER_PATH
+        value: /usr/bin/chromedriver
       - key: NAUKRI_GULF_EMAIL
         sync: false
       - key: NAUKRI_GULF_PASSWORD

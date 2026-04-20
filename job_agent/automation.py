@@ -60,12 +60,23 @@ def setup_selenium_driver(headless: bool = True) -> webdriver.Chrome:
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
 
-    # On Render/Linux, Chrome is installed system-wide
+    # On Render/Linux, Chrome or Chromium is installed system-wide
     chrome_bin = os.environ.get("GOOGLE_CHROME_BIN")
-    if chrome_bin:
+    if chrome_bin and Path(chrome_bin).exists():
         options.binary_location = chrome_bin
     elif Path("/usr/bin/google-chrome-stable").exists():
         options.binary_location = "/usr/bin/google-chrome-stable"
+    elif Path("/usr/bin/google-chrome").exists():
+        options.binary_location = "/usr/bin/google-chrome"
+    elif Path("/usr/bin/chromium-browser").exists():
+        options.binary_location = "/usr/bin/chromium-browser"
+    elif Path("/usr/bin/chromium").exists():
+        options.binary_location = "/usr/bin/chromium"
+
+    # Prefer system chromedriver (set via CHROMEDRIVER_PATH or standard location)
+    chromedriver_path = os.environ.get("CHROMEDRIVER_PATH")
+    if chromedriver_path and Path(chromedriver_path).exists():
+        return webdriver.Chrome(service=Service(chromedriver_path), options=options)
 
     # Use webdriver-manager if available, otherwise use system ChromeDriver
     if WEBDRIVER_MANAGER_AVAILABLE:
