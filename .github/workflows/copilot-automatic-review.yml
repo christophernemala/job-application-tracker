@@ -23,25 +23,42 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const pull_number = context.payload.pull_request.number;
-            const copilotReviewer = "copilot-pull-request-reviewer[bot]";
+            const reviewerCandidates = [
+              "copilot-pull-request-reviewer[bot]",
+              "copilot",
+            ];
 
-            try {
-              await github.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number,
-                reviewers: [copilotReviewer],
-              });
-              core.info(`Requested ${copilotReviewer} review for #${pull_number}.`);
-            } catch (error) {
-              const errors = error.response?.data?.errors ?? [];
-              const alreadyRequested = error.status === 422
-                && errors.some((entry) => entry.code === "already_exists");
-
-              if (alreadyRequested) {
-                core.info(`${copilotReviewer} was already requested for #${pull_number}.`);
+            for (const copilotReviewer of reviewerCandidates) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number,
+                  reviewers: [copilotReviewer],
+                });
+                core.info(`Requested ${copilotReviewer} review for #${pull_number}.`);
                 return;
-              }
+              } catch (error) {
+                const errors = error.response?.data?.errors ?? [];
+                const isValidationError = error.status === 422;
+                const alreadyRequested = isValidationError
+                  && errors.some((entry) => entry.code === "already_exists");
+                const reviewerUnsupported = isValidationError
+                  && errors.some((entry) => ["invalid", "not_found", "unprocessable"].includes(entry.code));
 
-              throw error;
+                if (alreadyRequested) {
+                  core.info(`${copilotReviewer} was already requested for #${pull_number}.`);
+                  return;
+                }
+
+                if (reviewerUnsupported) {
+                  core.warning(`Could not request ${copilotReviewer}: ${JSON.stringify(errors)}`);
+                  continue;
+                }
+
+                core.error(`Unexpected error while requesting ${copilotReviewer}: ${error.message}`);
+                throw error;
+              }
             }
+
+            core.setFailed("Unable to request a Copilot reviewer automatically for this pull request.");
