@@ -1,0 +1,77 @@
+name: Copilot Automatic Review
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-copilot-review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Copilot review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pull_number = context.payload.pull_request.number;
+            const reviewerCandidates = [
+              "copilot-pull-request-reviewer[bot]",
+              "copilot",
+            ];
+            const requestedReviewers = context.payload.pull_request.requested_reviewers ?? [];
+            const requestedReviewerLogins = new Set(
+              requestedReviewers
+                .map((reviewer) => reviewer?.login)
+                .filter(Boolean),
+            );
+            const existingCopilotReviewer = reviewerCandidates.find((reviewer) =>
+              requestedReviewerLogins.has(reviewer),
+            );
+
+            if (existingCopilotReviewer) {
+              core.info(`${existingCopilotReviewer} was already requested for #${pull_number}.`);
+              return;
+            }
+            for (const copilotReviewer of reviewerCandidates) {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number,
+                  reviewers: [copilotReviewer],
+                });
+                core.info(`Requested ${copilotReviewer} review for #${pull_number}.`);
+                return;
+              } catch (error) {
+                const errors = error.response?.data?.errors ?? [];
+                const isValidationError = error.status === 422;
+                const alreadyRequested = isValidationError
+                  && errors.some((entry) => entry.code === "already_exists");
+                const reviewerUnsupported = isValidationError
+                  && errors.some((entry) => ["invalid", "not_found", "unprocessable"].includes(entry.code));
+
+                if (alreadyRequested) {
+                  core.info(`${copilotReviewer} was already requested for #${pull_number}.`);
+                  return;
+                }
+
+                if (reviewerUnsupported) {
+                  core.warning(`Could not request ${copilotReviewer}: ${JSON.stringify(errors)}`);
+                  continue;
+                }
+
+                core.error(`Unexpected error while requesting ${copilotReviewer}: ${error.message}`);
+                throw error;
+              }
+            }
+
+            core.warning("Unable to request a Copilot reviewer automatically for this pull request; continuing without failing the workflow.");
