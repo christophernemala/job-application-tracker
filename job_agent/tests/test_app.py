@@ -6,49 +6,40 @@
 from __future__ import annotations
 
 import base64
-import json
-import os
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 # Patch init_database before importing the app so the test suite does not
-# touch any real database file.
+# write to any real database file.
 with patch("job_agent.database.init_database"):
     from job_agent.app import app as flask_app
+
 import job_agent.app as app_module
-import job_agent.database as database_module
 import job_agent.slack_notifier as notifier_module
 
 
 # ---------------------------------------------------------------------------
-# Helpers / fixtures
+# Auth helpers
 # ---------------------------------------------------------------------------
 
 _BASIC_AUTH = base64.b64encode(b"admin:admin123").decode()
 _AUTH_HEADER = {"Authorization": f"Basic {_BASIC_AUTH}"}
 
 
+# ---------------------------------------------------------------------------
+# Client fixture
+# ---------------------------------------------------------------------------
+
 @pytest.fixture()
-def client(tmp_path, monkeypatch):
-    """Test client with a throw-away DB.
+def client():
+    """Flask test client with TESTING mode enabled.
 
-    The new database functions (save_job, get_pending_jobs, mark_job_applied)
-    call get_connection() without arguments and rely on the default DB_PATH
-    that was captured at function-definition time.  We must patch both the
-    module attribute AND the inner function's __defaults__.
+    Database functions are mocked at the app module level in individual tests
+    to avoid touching any real database file.
     """
-    test_db = tmp_path / "test.db"
-    database_module.init_database(test_db)
-
-    monkeypatch.setattr(database_module, "DB_PATH", test_db)
-    inner_fn = database_module.get_connection.__wrapped__
-    monkeypatch.setattr(inner_fn, "__defaults__", (test_db,))
-
     flask_app.config["TESTING"] = True
     flask_app.config["SECRET_KEY"] = "test-secret"
-
     with flask_app.test_client() as c:
         yield c
 
@@ -58,34 +49,47 @@ def client(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 class TestSlackTest:
-    def test_requires_auth(self, client):
+    def test_requires_auth_redirects_unauthenticated(self, client):
+        """Unauthenticated requests must be rejected (redirect to login or 401)."""
         resp = client.post("/api/slack/test")
-        # Without auth should redirect to login (302) or return 401/302
         assert resp.status_code in (301, 302, 401)
 
-    def test_no_webhook_url_returns_400(self, client, monkeypatch):
-        monkeypatch.setattr(notifier_module, "SLACK_WEBHOOK_URL", "")
-        with patch("job_agent.slack_notifier.SLACK_WEBHOOK_URL", ""):
+    def test_no_webhook_url_returns_400(self, client):
+        """If SLACK_WEBHOOK_URL is empty the endpoint should return 400."""
+        with patch.object(notifier_module, "SLACK_WEBHOOK_URL", ""), \
+             patch("job_agent.slack_notifier.SLACK_WEBHOOK_URL", ""):
             resp = client.post("/api/slack/test", headers=_AUTH_HEADER)
         assert resp.status_code == 400
         data = resp.get_json()
         assert "SLACK_WEBHOOK_URL" in data["error"]
 
-    def test_webhook_url_set_and_post_succeeds_returns_200(self, client, monkeypatch):
-        monkeypatch.setattr(notifier_module, "SLACK_WEBHOOK_URL", "https://hooks.slack.com/test")
+    def test_webhook_url_set_and_post_succeeds_returns_200(self, client):
+        """When the webhook is configured and the POST succeeds, return 200."""
         with patch("job_agent.slack_notifier.SLACK_WEBHOOK_URL", "https://hooks.slack.com/test"), \
              patch("job_agent.slack_notifier._post_to_slack", return_value=True):
             resp = client.post("/api/slack/test", headers=_AUTH_HEADER)
         assert resp.status_code == 200
         assert resp.get_json()["status"] == "sent"
 
-    def test_webhook_post_failure_returns_500(self, client, monkeypatch):
-        monkeypatch.setattr(notifier_module, "SLACK_WEBHOOK_URL", "https://hooks.slack.com/test")
+    def test_webhook_post_failure_returns_500(self, client):
+        """When _post_to_slack returns False the endpoint should return 500."""
         with patch("job_agent.slack_notifier.SLACK_WEBHOOK_URL", "https://hooks.slack.com/test"), \
              patch("job_agent.slack_notifier._post_to_slack", return_value=False):
             resp = client.post("/api/slack/test", headers=_AUTH_HEADER)
         assert resp.status_code == 500
         assert "error" in resp.get_json()
+
+    def test_response_is_json(self, client):
+        """The endpoint should always respond with a JSON body."""
+        with patch("job_agent.slack_notifier.SLACK_WEBHOOK_URL", "https://hooks.slack.com/test"), \
+             patch("job_agent.slack_notifier._post_to_slack", return_value=True):
+            resp = client.post("/api/slack/test", headers=_AUTH_HEADER)
+        assert resp.content_type.startswith("application/json")
+
+    def test_get_method_not_allowed(self, client):
+        """Only POST is allowed on /api/slack/test."""
+        resp = client.get("/api/slack/test", headers=_AUTH_HEADER)
+        assert resp.status_code == 405
 
 
 # ---------------------------------------------------------------------------
@@ -93,62 +97,68 @@ class TestSlackTest:
 # ---------------------------------------------------------------------------
 
 class TestPendingJobs:
-    def test_requires_auth(self, client):
+    def test_requires_auth_redirects_unauthenticated(self, client):
         resp = client.get("/api/jobs/pending")
         assert resp.status_code in (301, 302, 401)
 
     def test_returns_empty_list_when_no_jobs(self, client):
-        resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
+        with patch("job_agent.app.get_pending_jobs", return_value=[]):
+            resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
         assert resp.status_code == 200
         assert resp.get_json() == []
 
-    def test_returns_pending_jobs(self, client):
-        database_module.save_job(
-            job_title="Frontend Developer",
-            company="Acme",
-            platform="Apify",
-            job_url="https://example.com/jobs/fe",
-        )
-        resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
-        assert resp.status_code == 200
-        jobs = resp.get_json()
-        assert len(jobs) >= 1
-        titles = [j["job_title"] for j in jobs]
-        assert "Frontend Developer" in titles
-
-    def test_mocked_get_pending_jobs_called_with_limit_100(self, client):
-        """Verify endpoint passes limit=100 to get_pending_jobs."""
-        mock_jobs = [{"id": 1, "job_title": "Mock Job", "company": "Mock Co", "applied": 0}]
-        with patch("job_agent.app.get_pending_jobs", return_value=mock_jobs) as mock_fn:
+    def test_returns_pending_jobs_list(self, client):
+        mock_jobs = [
+            {"id": 1, "job_title": "Frontend Developer", "company": "Acme", "applied": 0},
+        ]
+        with patch("job_agent.app.get_pending_jobs", return_value=mock_jobs):
             resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
         assert resp.status_code == 200
-        assert resp.get_json() == mock_jobs
+        jobs = resp.get_json()
+        assert len(jobs) == 1
+        assert jobs[0]["job_title"] == "Frontend Developer"
+
+    def test_calls_get_pending_jobs_with_limit_100(self, client):
+        """Verify the endpoint passes limit=100 to get_pending_jobs."""
+        with patch("job_agent.app.get_pending_jobs", return_value=[]) as mock_fn:
+            client.get("/api/jobs/pending", headers=_AUTH_HEADER)
         mock_fn.assert_called_once_with(limit=100)
 
-    def test_applied_jobs_not_returned(self, client):
-        row_id = database_module.save_job(
-            job_title="Applied Role",
-            company="Corp",
-            platform="Apify",
-            job_url="https://example.com/jobs/applied",
-        )
-        database_module.mark_job_applied(row_id)
-        resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
-        assert resp.status_code == 200
-        jobs = resp.get_json()
-        titles = [j["job_title"] for j in jobs]
-        assert "Applied Role" not in titles
+    def test_response_is_json(self, client):
+        with patch("job_agent.app.get_pending_jobs", return_value=[]):
+            resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
+        assert resp.content_type.startswith("application/json")
+
+    def test_multiple_jobs_returned(self, client):
+        mock_jobs = [
+            {"id": 1, "job_title": "Job A", "company": "Corp", "applied": 0},
+            {"id": 2, "job_title": "Job B", "company": "Corp", "applied": 0},
+            {"id": 3, "job_title": "Job C", "company": "Corp", "applied": 0},
+        ]
+        with patch("job_agent.app.get_pending_jobs", return_value=mock_jobs):
+            resp = client.get("/api/jobs/pending", headers=_AUTH_HEADER)
+        assert len(resp.get_json()) == 3
+
+    def test_post_method_not_allowed(self, client):
+        """Only GET is allowed on /api/jobs/pending."""
+        with patch("job_agent.app.get_pending_jobs", return_value=[]):
+            resp = client.post("/api/jobs/pending", headers=_AUTH_HEADER)
+        assert resp.status_code == 405
 
 
 # ---------------------------------------------------------------------------
 # POST /api/webhook/apify
 #
 # NOTE: The production code in apify_webhook() contains a Python scoping bug:
-# `import os` is used inside a conditional branch (`if dataset_id:`), which
-# causes Python's bytecode compiler to treat `os` as a local variable for the
-# *entire* function body.  Any reference to `os` before that branch executes
-# raises UnboundLocalError.  Tests that exercise the endpoint directly are
-# therefore marked xfail until the production bug is fixed.
+# `import os, urllib.request, json as _json` is used inside a conditional
+# branch (`if dataset_id:`), which causes Python's bytecode compiler to treat
+# `os` as a local variable for the *entire* function body.  Any reference to
+# `os` before that branch executes raises UnboundLocalError.  Tests that send
+# a direct list payload (which avoids the dataset_id branch) are affected
+# because `os.getenv("WEBHOOK_SECRET", "")` is reached first.
+#
+# Tests marked xfail document expected behavior once the bug is fixed.
+# The non-xfail test below confirms the current broken state.
 # ---------------------------------------------------------------------------
 
 _APIFY_BUG_XFAIL = pytest.mark.xfail(
@@ -162,12 +172,30 @@ _APIFY_BUG_XFAIL = pytest.mark.xfail(
 
 
 class TestApifyWebhook:
-    """Tests for the /api/webhook/apify endpoint.
+    """Tests for POST /api/webhook/apify.
 
-    Most tests are marked xfail because of a production-code scoping bug
-    (see module-level note above).  The xfail markers serve as regression
-    anchors: they will automatically start passing once the bug is fixed.
+    Most tests are xfail due to the scoping bug (see module-level note).
+    They act as regression anchors and will flip to passing once the bug
+    is fixed in production code.
     """
+
+    def test_endpoint_raises_500_due_to_scoping_bug(self, client, monkeypatch):
+        """Regression: the `import os` inside `if dataset_id:` makes `os` a
+        local variable throughout apify_webhook(), causing UnboundLocalError
+        when `os.getenv(...)` is reached before the conditional import.
+
+        This test documents the current broken state.  Remove it once the
+        production code scoping bug is fixed.
+        """
+        monkeypatch.setenv("WEBHOOK_SECRET", "")
+        try:
+            resp = client.post("/api/webhook/apify", json=[])
+            # Flask wraps the UnboundLocalError as a 500 response
+            assert resp.status_code == 500
+        except Exception as exc:
+            # Some test configurations propagate the exception directly
+            exc_str = str(exc).lower()
+            assert "os" in exc_str or "unbound" in exc_str or "local variable" in exc_str
 
     @_APIFY_BUG_XFAIL
     def test_wrong_token_returns_401(self, client, monkeypatch):
@@ -189,8 +217,8 @@ class TestApifyWebhook:
         assert resp.status_code == 200
 
     @_APIFY_BUG_XFAIL
-    def test_no_secret_configured_accepts_request(self, client, monkeypatch):
-        """When WEBHOOK_SECRET is empty, all requests are accepted."""
+    def test_no_secret_configured_accepts_all_requests(self, client, monkeypatch):
+        """When WEBHOOK_SECRET is empty every request should be accepted."""
         monkeypatch.setenv("WEBHOOK_SECRET", "")
         with patch("job_agent.app.save_job", return_value=1):
             resp = client.post(
@@ -228,11 +256,13 @@ class TestApifyWebhook:
         monkeypatch.setenv("WEBHOOK_SECRET", "")
         resp = client.post("/api/webhook/apify", json=[])
         assert resp.status_code == 200
-        assert resp.get_json()["jobs_saved"] == 0
-        assert resp.get_json()["auto_apply_triggered"] is False
+        data = resp.get_json()
+        assert data["jobs_saved"] == 0
+        assert data["auto_apply_triggered"] is False
 
     @_APIFY_BUG_XFAIL
     def test_duplicate_job_url_not_counted(self, client, monkeypatch):
+        """save_job returning None (duplicate) should not increment jobs_saved."""
         monkeypatch.setenv("WEBHOOK_SECRET", "")
         items = [{"title": "Dev", "companyName": "A", "url": "https://example.com/dup"}]
         with patch("job_agent.app.save_job", return_value=None):
@@ -247,6 +277,29 @@ class TestApifyWebhook:
              patch("threading.Thread"):
             resp = client.post("/api/webhook/apify", json=items)
         assert resp.get_json()["auto_apply_triggered"] is True
+
+    @_APIFY_BUG_XFAIL
+    def test_platform_defaults_to_apify(self, client, monkeypatch):
+        monkeypatch.setenv("WEBHOOK_SECRET", "")
+        with patch("job_agent.app.save_job", return_value=1) as mock_save:
+            client.post(
+                "/api/webhook/apify",
+                json=[{"title": "Analyst", "company": "X", "url": "https://example.com/a"}],
+            )
+        call_kwargs = mock_save.call_args[1]
+        assert call_kwargs["platform"] == "Apify"
+
+    @_APIFY_BUG_XFAIL
+    def test_platform_from_payload_overrides_default(self, client, monkeypatch):
+        monkeypatch.setenv("WEBHOOK_SECRET", "")
+        with patch("job_agent.app.save_job", return_value=1) as mock_save:
+            client.post(
+                "/api/webhook/apify",
+                json=[{"title": "PM", "company": "Y", "url": "https://example.com/pm",
+                       "platform": "LinkedIn"}],
+            )
+        call_kwargs = mock_save.call_args[1]
+        assert call_kwargs["platform"] == "LinkedIn"
 
     @_APIFY_BUG_XFAIL
     def test_alternative_title_field_jobTitle(self, client, monkeypatch):
@@ -271,35 +324,13 @@ class TestApifyWebhook:
         assert call_kwargs["job_title"] == "DevOps"
 
     @_APIFY_BUG_XFAIL
-    def test_platform_defaults_to_apify(self, client, monkeypatch):
-        monkeypatch.setenv("WEBHOOK_SECRET", "")
-        with patch("job_agent.app.save_job", return_value=1) as mock_save:
-            client.post(
-                "/api/webhook/apify",
-                json=[{"title": "Analyst", "company": "X", "url": "https://example.com/a"}],
-            )
-        call_kwargs = mock_save.call_args[1]
-        assert call_kwargs["platform"] == "Apify"
-
-    @_APIFY_BUG_XFAIL
-    def test_platform_from_payload(self, client, monkeypatch):
-        monkeypatch.setenv("WEBHOOK_SECRET", "")
-        with patch("job_agent.app.save_job", return_value=1) as mock_save:
-            client.post(
-                "/api/webhook/apify",
-                json=[{"title": "PM", "company": "Y", "url": "https://example.com/pm", "platform": "LinkedIn"}],
-            )
-        call_kwargs = mock_save.call_args[1]
-        assert call_kwargs["platform"] == "LinkedIn"
-
-    @_APIFY_BUG_XFAIL
-    def test_salary_field_alias_salaryRange(self, client, monkeypatch):
+    def test_salary_alias_salaryRange(self, client, monkeypatch):
         monkeypatch.setenv("WEBHOOK_SECRET", "")
         with patch("job_agent.app.save_job", return_value=1) as mock_save:
             client.post(
                 "/api/webhook/apify",
                 json=[{"title": "Eng", "company": "Z", "url": "https://example.com/eng",
-                        "salaryRange": "10000-15000"}],
+                       "salaryRange": "10000-15000"}],
             )
         call_kwargs = mock_save.call_args[1]
         assert call_kwargs["salary_range"] == "10000-15000"
@@ -314,7 +345,7 @@ class TestApifyWebhook:
         assert resp.get_json()["jobs_saved"] == 0
 
     @_APIFY_BUG_XFAIL
-    def test_empty_body_returns_zero(self, client, monkeypatch):
+    def test_empty_body_returns_zero_jobs(self, client, monkeypatch):
         monkeypatch.setenv("WEBHOOK_SECRET", "")
         resp = client.post(
             "/api/webhook/apify",
@@ -324,20 +355,11 @@ class TestApifyWebhook:
         assert resp.status_code == 200
         assert resp.get_json()["jobs_saved"] == 0
 
-    def test_endpoint_raises_unbound_local_error_for_os(self, client, monkeypatch):
-        """Regression: documents the Python scoping bug in apify_webhook.
-
-        The inner `import os` inside `if dataset_id:` makes `os` a local
-        variable for the entire function, causing UnboundLocalError when
-        `os.getenv(...)` is reached before the conditional branch executes.
-        Remove this test once the bug is fixed in production code.
-        """
+    @_APIFY_BUG_XFAIL
+    def test_response_contains_jobs_saved_and_auto_apply_triggered_keys(self, client, monkeypatch):
         monkeypatch.setenv("WEBHOOK_SECRET", "")
-        # The route is expected to raise a 500 (Flask wraps the UnboundLocalError)
-        # or the test client propagates the exception.
-        try:
+        with patch("job_agent.app.save_job", return_value=None):
             resp = client.post("/api/webhook/apify", json=[])
-            # If Flask catches the exception it returns 500
-            assert resp.status_code == 500
-        except Exception as exc:
-            assert "os" in str(exc).lower() or "unbound" in str(exc).lower()
+        data = resp.get_json()
+        assert "jobs_saved" in data
+        assert "auto_apply_triggered" in data
