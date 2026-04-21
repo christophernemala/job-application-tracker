@@ -364,6 +364,8 @@ class AutoApplyRunner(HumanBehaviorMixin):
             return False
 
     def apply_naukri_job(self, job: JobListing) -> bool:
+
+    def apply_naukri_job(self, job: JobListing) -> bool:
         """Apply to a Naukri Gulf job."""
         driver = self._get_driver("naukri")
 
