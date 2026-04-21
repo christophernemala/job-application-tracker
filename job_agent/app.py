@@ -126,13 +126,29 @@ def create_application():
     return jsonify({"id": app_id}), 201
 
 
+def _send_slack_test_message() -> bool:
+    """Send the standard Slack integration test message via notifier public API when available."""
+    payload = {"text": "✅ Slack integration test from Job Agent"}
+
+    send_test_message = getattr(slack_notifier, "send_test_message", None)
+    if callable(send_test_message):
+        return bool(send_test_message())
+
+    post_to_slack = getattr(slack_notifier, "post_to_slack", None)
+    if callable(post_to_slack):
+        return bool(post_to_slack(payload))
+
+    # Backward-compatible fallback until slack_notifier exposes a stable public API.
+    return bool(slack_notifier._post_to_slack(payload))
+
+
 @app.route("/api/slack/test", methods=["POST"])
 @requires_auth
 def slack_test():
     """Send a test Slack notification to verify the webhook is configured."""
     if not slack_notifier.SLACK_WEBHOOK_URL:
         return jsonify({"error": "SLACK_WEBHOOK_URL is not configured"}), 400
-    ok = slack_notifier._post_to_slack({"text": "✅ Slack integration test from Job Agent"})
+    ok = _send_slack_test_message()
     if ok:
         return jsonify({"status": "sent"})
     return jsonify({"error": "Slack notification failed"}), 500
