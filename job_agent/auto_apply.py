@@ -362,6 +362,8 @@ class AutoApplyRunner(HumanBehaviorMixin):
             log_event("apply_linkedin", "error", str(e))
             slack_notifier.notify_error(str(e), platform="LinkedIn")
             return False
+
+    def apply_naukri_job(self, job: JobListing) -> bool:
         """Apply to a Naukri Gulf job."""
         driver = self._get_driver("naukri")
 
