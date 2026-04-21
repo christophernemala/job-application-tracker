@@ -168,7 +168,7 @@ def save_job(
     """Insert a discovered job into the jobs table.
 
     Returns the new row id on success, or None if the URL already exists
-    (duplicate).  Never raises.
+    (duplicate). Other SQLite errors may still be raised.
     """
     with get_connection() as conn:
         cursor = conn.cursor()
