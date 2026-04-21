@@ -197,8 +197,9 @@ def apify_webhook():
 
     auto_apply_triggered = False
     if jobs_saved > 0:
-        threading.Thread(target=lambda: None, daemon=True).start()
-        auto_apply_triggered = True
+        # Do not report auto-apply as triggered unless real background work
+        # is actually scheduled from this handler.
+        auto_apply_triggered = False
 
     return jsonify({"jobs_saved": jobs_saved, "auto_apply_triggered": auto_apply_triggered})
 
