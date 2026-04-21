@@ -31,3 +31,14 @@ services:
         value: "+971-565839277"
       - key: JOB_AGENT_LOCATION
         value: "Dubai, UAE"
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+
+  - type: web
+    name: telegram-job-agent-web
+    runtime: static
+    staticPublishPath: .
+    buildCommand: ""
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"

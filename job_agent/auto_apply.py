@@ -36,6 +36,7 @@ from job_agent.human_scheduler import (
     HumanScheduler,
     RateLimits,
 )
+from job_agent import slack_notifier
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,6 @@ class AutoApplyRunner(HumanBehaviorMixin):
 
     def _on_application_done(self, platform: str, success: bool, total_today: dict) -> None:
         logger.info("Application complete: %s (success=%s), totals: %s", platform, success, total_today)
-
     def _get_driver(self, platform: str):
         """Get or create authenticated driver for platform."""
         if platform in self.drivers and self.drivers[platform]:
@@ -345,6 +345,13 @@ class AutoApplyRunner(HumanBehaviorMixin):
                     resume_path=None,
                 )
                 log_event("apply_linkedin", "success", f"{job.title} at {job.company}")
+                slack_notifier.notify_application_status(
+                    job_title=job.title,
+                    company=job.company,
+                    platform="LinkedIn",
+                    status="applied",
+                    job_url=job.url,
+                )
                 return True
 
             log_event("apply_linkedin", "incomplete", f"Could not verify: {job.title}")
@@ -353,7 +360,10 @@ class AutoApplyRunner(HumanBehaviorMixin):
         except Exception as e:
             logger.error("LinkedIn apply failed for %s: %s", job.url, e)
             log_event("apply_linkedin", "error", str(e))
+            slack_notifier.notify_error(str(e), platform="LinkedIn")
             return False
+
+    def apply_naukri_job(self, job: JobListing) -> bool:
 
     def apply_naukri_job(self, job: JobListing) -> bool:
         """Apply to a Naukri Gulf job."""
@@ -396,6 +406,13 @@ class AutoApplyRunner(HumanBehaviorMixin):
                     resume_path=None,
                 )
                 log_event("apply_naukri", "success", f"{job.title} at {job.company}")
+                slack_notifier.notify_application_status(
+                    job_title=job.title,
+                    company=job.company,
+                    platform="Naukri Gulf",
+                    status="applied",
+                    job_url=job.url,
+                )
                 return True
 
             log_event("apply_naukri", "incomplete", f"Could not verify: {job.title}")
@@ -404,6 +421,7 @@ class AutoApplyRunner(HumanBehaviorMixin):
         except Exception as e:
             logger.error("Naukri apply failed for %s: %s", job.url, e)
             log_event("apply_naukri", "error", str(e))
+            slack_notifier.notify_error(str(e), platform="Naukri Gulf")
             return False
 
     def run_daily_session(self) -> dict:
@@ -491,6 +509,14 @@ class AutoApplyRunner(HumanBehaviorMixin):
 
         stats["ended_at"] = datetime.now().isoformat()
         stats["scheduler_status"] = self.scheduler.get_status_summary()
+
+        total_applied = stats["linkedin_applied"] + stats["naukri_applied"]
+        slack_notifier.notify_run_summary(
+            platform="LinkedIn + Naukri Gulf",
+            attempted=total_applied + stats["errors"],
+            successful=total_applied,
+            failed=stats["errors"],
+        )
 
         logger.info("Daily session complete: %s", stats)
         return stats
