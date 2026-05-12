@@ -84,7 +84,8 @@ ROLE_TYPE_MAP = [
 
 
 def normalize(text: str) -> str:
-    return f" {re.sub(r'\s+', ' ', (text or '').lower())} "
+    normalized = re.sub(r'\s+', ' ', (text or '').lower())
+    return f" {normalized} "
 
 
 def count_matches(text: str, keywords: Iterable[str]) -> int:

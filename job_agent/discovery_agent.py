@@ -26,8 +26,8 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from job_selection_rules import JobRecord, score_job
-from notion_selection_sync import create_job_page, NotionSyncError
+from job_agent.job_selection_rules import JobRecord, score_job
+from job_agent.notion_selection_sync import create_job_page, NotionSyncError
 
 
 DEFAULT_LEADS_FILE = Path(__file__).resolve().parent / "job_leads.json"
