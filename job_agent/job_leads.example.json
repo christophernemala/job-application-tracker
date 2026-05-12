@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Credit Controller",
+    "company": "Example Real Estate Group",
+    "location": "Dubai, UAE",
+    "source": "LinkedIn",
+    "link": "https://example.com/jobs/credit-controller",
+    "description": "We are hiring a Credit Controller to manage accounts receivable, AR aging, collections, customer reconciliation, cash application, Oracle ERP records, monthly reporting, and stakeholder follow-up for UAE operations."
+  },
+  {
+    "title": "Fixed Assets Accountant",
+    "company": "Example Manufacturing Company",
+    "location": "Dubai, UAE",
+    "source": "NaukriGulf",
+    "link": "https://example.com/jobs/fixed-assets-accountant",
+    "description": "Responsible for asset capitalization, depreciation, asset register maintenance, physical verification, and fixed asset accounting."
+  }
+]

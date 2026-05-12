@@ -1,0 +1,36 @@
+name: Daily UAE Finance Job Selection Agent
+
+on:
+  schedule:
+    # 04:00 UTC = 08:00 UAE time
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  select-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r job_agent/requirements.txt
+
+      - name: Run safe job selection agent
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          JOB_AGENT_MAX_JOBS: "40"
+          JOB_AGENT_MIN_SCORE_TO_SAVE: "65"
+        run: python job_agent/discovery_agent.py

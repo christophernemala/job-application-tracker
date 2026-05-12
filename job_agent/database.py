@@ -116,6 +116,71 @@ def save_application(
         return int(cursor.lastrowid)
 
 
+def save_job(
+    *,
+    job_title: str,
+    company: str,
+    platform: str,
+    job_url: str,
+    description: str | None = None,
+    location: str | None = None,
+    salary_range: str | None = None,
+    match_score: int | None = None,
+    skills_required: str | None = None,
+) -> int | None:
+    """Save a discovered job and return its row id.
+
+    Duplicate job URLs return None instead of raising so webhook ingestion and
+    tests can treat duplicates as harmless.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                """
+                INSERT INTO jobs
+                (job_title, company, platform, job_url, description, salary_range, location, match_score, skills_required)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    job_title,
+                    company,
+                    platform,
+                    job_url,
+                    description,
+                    salary_range,
+                    location,
+                    match_score,
+                    skills_required,
+                ),
+            )
+        except sqlite3.IntegrityError:
+            return None
+        return int(cursor.lastrowid)
+
+
+def get_pending_jobs(limit: int = 20) -> list[dict[str, Any]]:
+    """Return discovered jobs that have not yet been marked as applied."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM jobs
+            WHERE COALESCE(applied, 0) = 0
+            ORDER BY id ASC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def mark_job_applied(job_id: int) -> None:
+    """Mark a discovered job as applied. Missing IDs are ignored."""
+    with get_connection() as conn:
+        conn.execute("UPDATE jobs SET applied = 1 WHERE id = ?", (job_id,))
+
+
 def get_application(application_id: int) -> dict[str, Any] | None:
     with get_connection() as conn:
         row = conn.execute(
