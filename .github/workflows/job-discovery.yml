@@ -1,0 +1,50 @@
+name: Job Discovery Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run without syncing to Notion"
+        required: false
+        default: "false"
+  schedule:
+    - cron: "0 4 * * *"
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+
+    env:
+      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+      NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      JOB_AGENT_MAX_JOBS: "40"
+      JOB_AGENT_MIN_SCORE_TO_SAVE: "65"
+      JOB_AGENT_DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate Python syntax
+        run: |
+          python -m compileall job_agent
+
+      - name: Run smoke test
+        run: |
+          python job_agent/smoke_test.py
+
+      - name: Run discovery agent
+        run: |
+          python job_agent/discovery_agent.py
