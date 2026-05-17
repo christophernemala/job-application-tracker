@@ -27,9 +27,9 @@ def _headers() -> dict[str, str]:
 
 
 def _database_id() -> str:
-    database_id = os.getenv("NOTION_DATABASE_ID", "").strip()
+    database_id = os.getenv("NOTION_DATABASE_ID", "").strip() or os.getenv("NOTION_DATA_SOURCE_ID", "").strip()
     if not database_id:
-        raise NotionSyncError("Missing NOTION_DATABASE_ID secret.")
+        raise NotionSyncError("Missing NOTION_DATABASE_ID or NOTION_DATA_SOURCE_ID secret.")
     return database_id
 
 
@@ -80,8 +80,8 @@ def build_notion_properties(job: Any, scored: dict[str, Any]) -> dict[str, Any]:
         "Missing Gaps": _rich_text(", ".join(scored.get("missing_gaps", []))),
         "Next Action": _select(scored.get("next_action") or "Apply"),
         "Applied": _checkbox(False),
-        "date:Date Found:start": _date(today.isoformat()),
-        "date:Follow Up Date:start": _date(follow_up.isoformat()),
+        "Date Found": _date(today.isoformat()),
+        "Follow Up Date": _date(follow_up.isoformat()),
     }
 
 
