@@ -1,4 +1,3 @@
-# Render Blueprint for AI Job Agent
 services:
   - type: web
     name: job-application-tracker
@@ -8,26 +7,22 @@ services:
     startCommand: gunicorn job_agent.app:app
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12.10"
-      - key: NAUKRI_GULF_EMAIL
-        sync: false
-      - key: NAUKRI_GULF_PASSWORD
-        sync: false
-      - key: JOB_AGENT_NAME
-        value: "Christopher Nemala"
-      - key: JOB_AGENT_EMAIL
-        value: "christophernemala@gmail.com"
+        value: "3.11.15"
+      - key: JOB_AGENT_MAX_JOBS
+        value: "40"
+      - key: JOB_AGENT_MIN_SCORE_TO_SAVE
+        value: "65"
+      - key: DASHBOARD_USERNAME
+        value: "admin"
       - key: DASHBOARD_PASSWORD
         sync: false
-      - key: LINKEDIN_EMAIL
+      - key: FLASK_SECRET_KEY
         sync: false
-      - key: LINKEDIN_PASSWORD
+      - key: NOTION_API_KEY
+        sync: false
+      - key: NOTION_DATABASE_ID
+        sync: false
+      - key: NOTION_DATA_SOURCE_ID
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: APIFY_API_TOKEN
-        sync: false
-      - key: JOB_AGENT_PHONE
-        value: "+971-565839277"
-      - key: JOB_AGENT_LOCATION
-        value: "Dubai, UAE"
