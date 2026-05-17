@@ -26,11 +26,45 @@ import os
 from pathlib import Path
 from typing import Iterable
 
-from job_selection_rules import JobRecord, score_job
-from notion_selection_sync import create_job_page, NotionSyncError
+try:
+    from job_agent.job_selection_rules import JobRecord, score_job
+    from job_agent.notion_selection_sync import NotionSyncError, create_job_page
+except ImportError:  # Allows direct execution as: python job_agent/discovery_agent.py
+    from job_selection_rules import JobRecord, score_job
+    from notion_selection_sync import NotionSyncError, create_job_page
 
 
 DEFAULT_LEADS_FILE = Path(__file__).resolve().parent / "job_leads.json"
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def validate_environment(*, dry_run: bool) -> None:
+    """Validate required production configuration before trying integrations."""
+    missing: list[str] = []
+
+    if not os.getenv("NOTION_API_KEY", "").strip():
+        missing.append("NOTION_API_KEY")
+
+    has_database = bool(os.getenv("NOTION_DATABASE_ID", "").strip())
+    has_data_source = bool(os.getenv("NOTION_DATA_SOURCE_ID", "").strip())
+    if not (has_database or has_data_source):
+        missing.append("NOTION_DATABASE_ID or NOTION_DATA_SOURCE_ID")
+
+    if missing and dry_run:
+        print("Dry run mode enabled. Skipping Notion sync because these secrets are missing:")
+        for item in missing:
+            print(f"- {item}")
+        return
+
+    if missing:
+        joined = ", ".join(missing)
+        raise RuntimeError(f"Missing required production environment variables: {joined}")
 
 
 def load_jobs() -> list[JobRecord]:
@@ -72,9 +106,14 @@ def dedupe(jobs: Iterable[JobRecord]) -> list[JobRecord]:
 def main() -> None:
     max_jobs = int(os.getenv("JOB_AGENT_MAX_JOBS", "40"))
     min_score = int(os.getenv("JOB_AGENT_MIN_SCORE_TO_SAVE", "65"))
+    dry_run = env_bool("JOB_AGENT_DRY_RUN", default=False)
+
+    validate_environment(dry_run=dry_run)
 
     jobs = load_jobs()[:max_jobs]
     print(f"Loaded {len(jobs)} job leads.")
+    if dry_run:
+        print("Dry run mode enabled. Jobs will be scored but not synced to Notion.")
 
     selected = 0
     skipped = 0
@@ -83,11 +122,16 @@ def main() -> None:
     for job in jobs:
         scored = score_job(job)
         score = int(scored.get("match_score") or 0)
-        priority = scored.get("priority")
+        priority = scored.get("priority") or "Skip"
         print(f"{score:03d} | {priority:6s} | {job.company} | {job.title}")
 
         if score < min_score or priority == "Skip":
             skipped += 1
+            continue
+
+        if dry_run:
+            selected += 1
+            print("  Dry run: Notion sync skipped.")
             continue
 
         try:
@@ -100,7 +144,7 @@ def main() -> None:
 
     print("\nDaily UAE Finance Job Selection Report")
     print(f"Jobs scanned: {len(jobs)}")
-    print(f"Selected to Notion: {selected}")
+    print(f"Selected: {selected}")
     print(f"Skipped: {skipped}")
     print(f"Failures: {failures}")
 
