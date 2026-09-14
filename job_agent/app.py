@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import threading
 from functools import wraps
 from flask import Flask, jsonify, render_template, request, Response, session, redirect, url_for
@@ -9,24 +10,36 @@ from flask import Flask, jsonify, render_template, request, Response, session, r
 from job_agent.config import get_runtime_config_snapshot
 from job_agent.database import (
     get_application,
+    get_pending_jobs,
     init_database,
     list_applications,
     save_application,
     update_application_notes,
 )
+from job_agent import slack_notifier
+from job_agent.slack_notifier import notify_application_status
+
+_log = logging.getLogger(__name__)
 
 app = Flask(__name__)
-# Secret key for session management - use env var or fallback
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "job-tracker-secret-2024")
 
-# Dashboard credentials - defaults allow login even without env vars set
-# Accept both DASHBOARD_USERNAME (Render env group) and DASHBOARD_USER (legacy)
+_secret = os.getenv("FLASK_SECRET_KEY")
+if not _secret:
+    _secret = secrets.token_hex(32)
+    _log.warning("FLASK_SECRET_KEY not set — generated a random key (sessions won't persist across restarts)")
+app.secret_key = _secret
+
 DASHBOARD_USER = os.getenv("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USER", "admin")
-DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
+if not DASHBOARD_PASSWORD:
+    _log.error(
+        "DASHBOARD_PASSWORD is not set. Login is disabled until this environment variable is configured."
+    )
 
 
 def check_auth(username, password):
-    """Check if a username/password combination is valid."""
+    if not DASHBOARD_PASSWORD:
+        return False
     return username == DASHBOARD_USER and password == DASHBOARD_PASSWORD
 
 
@@ -108,17 +121,23 @@ def save_notes(app_id: int):
 @requires_auth
 def create_application():
     payload = request.get_json()
+    job_title = payload["job_title"]
+    company = payload["company"]
+    platform = payload["platform"]
+    job_url = payload.get("job_url", "")
+    status = payload.get("status", "applied")
     app_id = save_application(
-        job_title=payload["job_title"],
-        company=payload["company"],
-        platform=payload["platform"],
-        job_url=payload.get("job_url", ""),
-        status=payload.get("status", "applied"),
+        job_title=job_title,
+        company=company,
+        platform=platform,
+        job_url=job_url,
+        status=status,
         match_score=payload.get("match_score"),
         cover_letter=payload.get("cover_letter"),
         resume_path=payload.get("resume_version"),
         screenshot_path=payload.get("screenshot_path"),
     )
+    notify_application_status(job_title, company, platform, status, job_url or None)
     return jsonify({"id": app_id}), 201
 
 
@@ -209,6 +228,28 @@ def run_apify_scrape():
 def automation_status():
     """Check the current automation run status."""
     return jsonify(_automation_status)
+
+
+@app.route("/api/slack/test", methods=["POST"])
+@requires_auth
+def slack_test():
+    """Send a test message via the configured Slack webhook."""
+    if not slack_notifier.SLACK_WEBHOOK_URL:
+        return jsonify({"error": "SLACK_WEBHOOK_URL is not configured"}), 400
+    ok = slack_notifier._post_to_slack({
+        "text": ":wave: Slack integration test from job-application-tracker."
+    })
+    if not ok:
+        return jsonify({"error": "Slack webhook post failed"}), 500
+    return jsonify({"status": "sent"}), 200
+
+
+@app.route("/api/jobs/pending", methods=["GET"])
+@requires_auth
+def pending_jobs():
+    """List jobs discovered but not yet applied to."""
+    jobs = get_pending_jobs(limit=100)
+    return jsonify(jobs)
 
 
 if __name__ == "__main__":
